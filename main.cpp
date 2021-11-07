@@ -64,11 +64,24 @@ struct Point
 	int row;
 	int col;
 } User;
+
 struct PointEnemy
 {
 	int row;
 	int col;
 } Enemy;
+
+struct Vector
+{
+	Point point;
+	int dir;
+} VectorPlayer, VectorEnemy;
+
+struct FreePoints
+{
+	Point points[14];
+	int length;
+} FreePointsPlayer, FreePointsEnemy;
 
 //struct FinishIt
 //{
@@ -132,6 +145,15 @@ bool IsAliveEnemy();
 //bool IsQuadro(int** field, short x, short y);
 ////////////////////////////////////////////////////////////////////////////////////////////
 
+////////////////////////////////////////////////////////////////////////////////////////////
+bool IsDrowned(int** field, short x, short y);
+void GetBeginOfShip(int** field, short y, short x, Vector* vec);
+size_t GetSizeOfShip(int** field);
+void SetFreepoints(int** field, int length, FreePoints* fp);
+
+void PrintVector(Vector const* v);
+////////////////////////////////////////////////////////////////////////////////////////////
+
 int main()
 {
 	system("mode con cols=105 lines=29");
@@ -181,6 +203,11 @@ int main()
 			{
 				EnemyLife--;
 				turn_player = true;
+
+				//#Debug code
+				GetBeginOfShip(arrEnemy, User.row, User.col, &VectorEnemy);
+				PrintVector(&VectorEnemy);
+				Sleep(6500);
 			}
 		}
 
@@ -291,7 +318,7 @@ void DrawEnemyField(int** field, int size, short x, short y) //отрисовка поля ИИ
 			switch (cell)
 			{
 			case SHIP:
-				cout << Fog;///////////Поменять на Ship для теста
+				cout << Ship;///////////Поменять на Ship для теста
 				break;
 
 			case FOG:
@@ -415,7 +442,7 @@ bool IsValidNum(int num)
 	{
 		return false;
 	}
-	cout << "IsvalidNum " << num << endl;
+	//cout << "IsvalidNum " << num << endl;
 	return true;
 }
 
@@ -1314,6 +1341,412 @@ bool IsAlivePlayer()
 bool IsAliveEnemy()
 {
 	return EnemyLife != 0;
+}
+
+void GetBeginOfShip(int** field, short y, short x, Vector* vec)
+{
+	if (x == 0 && y == 0)
+	{
+		// Check to right
+		if (field[y][x + 1] == SHIP || field[y][x + 1] == DESTROYED)
+		{
+			// Get left tip
+			vec->dir = RIGHT;
+			vec->point.row = y;
+			vec->point.col = x;
+			return;
+		}
+		// Check to down
+		else if (field[y - 1][x] == SHIP || field[y - 1][x] == DESTROYED)
+		{
+			// Get Top tip
+			for (size_t i = 2; i < 4; i++)
+			{
+				if (field[y - i][x] != SHIP && field[y - i][x] != DESTROYED)
+				{
+					vec->dir = DOWN;
+					vec->point.row = y - i + 1;
+					vec->point.col = x;
+					return;
+					break;
+				}
+			}
+		}
+		// MonoShip!!
+		else
+		{
+			vec->dir = IMPOSSIBLE;
+			vec->point.row = y;
+			vec->point.col = x;
+		}
+	}
+	
+	if (x == 0 && y == Size - 1)
+	{
+		// Check to right
+		if (field[y][x + 1] == SHIP || field[y][x + 1] == DESTROYED)
+		{
+			// Get left tip
+			vec->dir = RIGHT;
+			vec->point.row = y;
+			vec->point.col = x;
+			return;
+		}
+		// Check to Up
+		else if (field[y - 1][x] == SHIP || field[y - 1][x] == DESTROYED)
+		{
+			// Get Top tip
+			vec->dir = DOWN;
+			vec->point.row = y;
+			vec->point.col = x;
+			return;
+		}
+		// MonoShip!!
+		else
+		{
+			vec->dir = IMPOSSIBLE;
+			vec->point.row = y;
+			vec->point.col = x;
+		}
+	}
+
+	if (x == Size - 1 && y == 0)
+	{
+		// Check to left
+		if (field[y][x - 1] == SHIP || field[y][x - 1] == DESTROYED)
+		{
+			// Get left tip
+			for (size_t i = 2; i < 4; i++)
+			{
+				if (field[y][x - i] != SHIP && field[y][x - i] != DESTROYED)
+				{
+					vec->dir = DOWN;
+					vec->point.row = y;
+					vec->point.col = x - i + 1;
+					return;
+					break;
+				}
+			}
+		}
+		// Check to Up
+		else if (field[y + 1][x] == SHIP || field[y + 1][x] == DESTROYED)
+		{
+			// Get Top tip
+			vec->dir = DOWN;
+			vec->point.row = y;
+			vec->point.col = x;
+			return;
+		}
+		// MonoShip!!
+		else
+		{
+			vec->dir = IMPOSSIBLE;
+			vec->point.row = y;
+			vec->point.col = x;
+		}
+	}
+
+	if (x == Size - 1 && y == Size - 1)
+	{
+		// Check to left
+		if (field[y][x - 1] == SHIP || field[y][x - 1] == DESTROYED)
+		{
+			// Get left tip
+			for (size_t i = 2; i < 4; i++)
+			{
+				if (field[y][x - i] != SHIP && field[y][x - i] != DESTROYED)
+				{
+					vec->dir = DOWN;
+					vec->point.row = y;
+					vec->point.col = x - i + 1;
+					return;
+					break;
+				}
+			}
+		}
+		// Check to Up
+		else if (field[y + 1][x] == SHIP || field[y + 1][x] == DESTROYED)
+		{
+			// Get Top tip
+			for (size_t i = 2; i < 4; i++)
+			{
+				if (field[y - i][x] != SHIP && field[y - i][x] != DESTROYED)
+				{
+					vec->dir = DOWN;
+					vec->point.row = y - i + 1;
+					vec->point.col = x;
+					return;
+					break;
+				}
+			}
+			return;
+		}
+		// MonoShip!!
+		else
+		{ 
+			vec->dir = IMPOSSIBLE;
+			vec->point.row = y;
+			vec->point.col = x;
+		}
+	}
+
+	if (y == 0)
+	{
+		// Check to left
+		if (field[y][x - 1] == SHIP || field[y][x - 1] == DESTROYED)
+		{
+			// Get left tip
+			for (size_t i = 2; i < 4 ; i++)
+			{
+				if (x - i >= 0 && field[y][x - i] != SHIP && field[y][x - i] != DESTROYED)
+				{
+					vec->dir = LEFT;
+					vec->point.row = y;
+					vec->point.col = x - i + 1;
+					return;
+					break;
+				}
+			}
+		}
+		else if (field[y][x + 1] != SHIP && field[y][x + 1] != DESTROYED)
+		{
+			// MonoShip!!
+			if (field[y + 1][x] != SHIP && field[y + 1][x] != DESTROYED)
+			{
+				vec->dir = IMPOSSIBLE;
+				vec->point.row = y;
+				vec->point.col = x;
+				return;
+			}
+			// Get Top tip
+			vec->dir = DOWN;
+			vec->point.row = y;
+			vec->point.col = x;
+			return;
+		}
+		else
+		{
+			vec->dir = LEFT;
+			vec->point.row = y;
+			vec->point.col = x;
+		}
+	}
+
+	if (y == Size - 1)
+	{
+		// Check to left
+		if (field[y][x - 1] == SHIP || field[y][x - 1] == DESTROYED)
+		{
+			// Get left tip
+			for (size_t i = 2; i < 4; i++)
+			{
+				if (x - i >= 0 && field[y][x - i] != SHIP && field[y][x - i] != DESTROYED)
+				{
+					vec->dir = LEFT;
+					vec->point.row = y;
+					vec->point.col = x - i + 1;
+					return;
+					break;
+				}
+			}
+		}
+		else if (field[y][x + 1] != SHIP && field[y][x + 1] != DESTROYED)
+		{
+			// MonoShip!!
+			if (field[y - 1][x] != SHIP && field[y - 1][x] != DESTROYED)
+			{
+				vec->dir = IMPOSSIBLE;
+				vec->point.row = y;
+				vec->point.col = x;
+				return;
+			}
+			// Get Top tip
+			for (size_t i = 2; i < 4; i++)
+			{
+				if (field[y - i][x] != SHIP && field[y - i][x] != DESTROYED)
+				{
+					vec->dir = LEFT;
+					vec->point.row = y - i + 1;
+					vec->point.col = x;
+					return;
+					break;
+				}
+			}
+			return;
+		}
+	}
+
+	if (x == 0)
+	{
+		if (field[y][x + 1] == SHIP || field[y][x + 1] == DESTROYED)
+		{
+			vec->dir = LEFT;
+			vec->point.row = y;
+			vec->point.col = x;
+			return;
+		}
+		else if (field[y - 1][x] != SHIP && field[y - 1][x] != DESTROYED)
+		{
+			// MonoShip
+			if (field[y + 1][x] != SHIP && field[y + 1][x] != DESTROYED)
+			{
+				vec->dir = IMPOSSIBLE;
+				vec->point.row = y;
+				vec->point.col = x;
+				return;
+			}
+
+		}
+		else
+		{
+			// Move to Up
+			for (size_t i = 2; i < 4; i++)
+			{
+				if (field[y - i][x] != SHIP && field[y - i][x] != DESTROYED)
+				{
+					vec->dir = UP;
+					vec->point.row = y - i + 1;
+					vec->point.col = x;
+					return;
+					break;
+				}
+			}
+		}
+	}
+
+	if (x == Size - 1)
+	{
+		// go to Left
+		if (field[y][x - 1] == SHIP || field[y][x - 1] == DESTROYED)
+		{
+			for (size_t i = 2; i < 4; i++)
+			{
+				if (field[y][x - i] != SHIP && field[y][x - i] != DESTROYED)
+				{
+					vec->dir = LEFT;
+					vec->point.row = y;
+					vec->point.col = x - i + 1;
+					return;
+					break;
+				}
+			}
+		}
+		else if (field[y - 1][x] != SHIP && field[y - 1][x] != DESTROYED)
+		{
+			// MonoShip
+			if (field[y + 1][x] != SHIP && field[y + 1][x] != DESTROYED)
+			{
+				vec->dir = IMPOSSIBLE;
+				vec->point.row = y;
+				vec->point.col = x;
+				return;
+			}
+			vec->dir = UP;
+			vec->point.row = y;
+			vec->point.col = x;
+			return;
+		}
+		else
+		{
+			for (size_t i = 2; i < 4; i++)
+			{
+				if (field[y - i][x] != SHIP && field[y - i][x] != DESTROYED)
+				{
+					vec->dir = UP;
+					vec->point.row = y - i + 1;
+					vec->point.col = x;
+					return;
+					break;
+				}
+			}
+		}
+	}
+
+	//Isn't border
+	// check lefter
+	if (field[y][x - 1] != SHIP && field[y][x - 1] != DESTROYED)
+	{
+		// check righter
+		// bad situation it's have to check vertical
+		if (field[y][x + 1] != SHIP && field[y][x + 1] != DESTROYED)
+		{
+			//Vertical
+			if (field[y - 1][x] != SHIP && field[y - 1][x] != DESTROYED)
+			{
+				//MonoShip
+				if (field[y + 1][x] != SHIP && field[y + 1][x] != DESTROYED)
+				{
+					vec->dir = IMPOSSIBLE;
+					vec->point.row = y;
+					vec->point.col = x;
+					return;
+				}
+				vec->dir = UP;
+				vec->point.row = y;
+				vec->point.col = x;
+				return;
+			}
+			else // go to UP
+			{
+				for (size_t i = 2; i < 4; i++)
+				{
+					if (y - i >= 0 && field[y - i][x] != SHIP && field[y - i][x] != DESTROYED)
+					{
+						vec->dir = UP;
+						vec->point.row = y - i + 1;
+						vec->point.col = x;
+						return;
+						break;
+					}
+				}
+			}
+		}
+		// horizontal!!
+		else
+		{
+			vec->dir = LEFT;
+			vec->point.row = y;
+			vec->point.col = x;
+			return;
+		}
+	}
+	else // we have to move to lefter
+	{
+		for (size_t i = 2; i < 4; i++)
+		{
+			if (x - i >= 0 && field[y][x - i] != SHIP && field[y][x - i] != DESTROYED)
+			{
+				vec->dir = LEFT;
+				vec->point.row = y;
+				vec->point.col = x - i + 1;
+				return;
+				break;
+			}
+		}
+	}
+}
+
+void PrintVector(Vector const* v)
+{
+	SetConsoleCursorPosition(hStdOut, { 0, 25 });
+	printf("{y=%d, x=%d} ", v->point.row, v->point.col);
+	switch (v->dir)
+	{
+	case LEFT:
+		printf("left");
+		break;
+
+	case UP:
+		printf("up");
+		break;
+
+	case IMPOSSIBLE:
+		printf("MONOSHIP");
+		break;
+
+	default:
+		break;
+	}
 }
 
 //bool IsFinish(int** field, short x, short y)
