@@ -1,0 +1,1 @@
+Batleship games implementation for Windows using ConsoleApi.
