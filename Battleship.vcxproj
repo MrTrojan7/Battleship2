@@ -18,11 +18,14 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{21ae1dd6-3e3d-41a4-9d29-da4eb88d82e0}</ProjectGuid>
-    <RootNamespace>coursework</RootNamespace>
+    <ProjectGuid>{b842fe67-0ec0-4af6-89fc-3969dee76530}</ProjectGuid>
+    <RootNamespace>Battleship</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
