@@ -207,7 +207,7 @@ int main()
 				//#Debug code
 				GetBeginOfShip(arrEnemy, User.row, User.col, &VectorEnemy);
 				PrintVector(&VectorEnemy);
-				Sleep(6500);
+				Sleep(2300);
 			}
 		}
 
@@ -1357,20 +1357,13 @@ void GetBeginOfShip(int** field, short y, short x, Vector* vec)
 			return;
 		}
 		// Check to down
-		else if (field[y - 1][x] == SHIP || field[y - 1][x] == DESTROYED)
+		else if (field[y + 1][x] == SHIP || field[y + 1][x] == DESTROYED)
 		{
 			// Get Top tip
-			for (size_t i = 2; i < 4; i++)
-			{
-				if (field[y - i][x] != SHIP && field[y - i][x] != DESTROYED)
-				{
-					vec->dir = DOWN;
-					vec->point.row = y - i + 1;
-					vec->point.col = x;
-					return;
-					break;
-				}
-			}
+			vec->dir = DOWN;
+			vec->point.row = y;
+			vec->point.col = x;
+			return;
 		}
 		// MonoShip!!
 		else
@@ -1395,11 +1388,17 @@ void GetBeginOfShip(int** field, short y, short x, Vector* vec)
 		// Check to Up
 		else if (field[y - 1][x] == SHIP || field[y - 1][x] == DESTROYED)
 		{
-			// Get Top tip
-			vec->dir = DOWN;
-			vec->point.row = y;
-			vec->point.col = x;
-			return;
+			for (size_t i = 2; i < 4; i++)
+			{
+				if (field[y - i][x] != SHIP && field[y - i][x] != DESTROYED)
+				{
+					vec->dir = UP;
+					vec->point.row = y - i + 1;
+					vec->point.col = x;
+					return;
+					break;
+				}
+			}
 		}
 		// MonoShip!!
 		else
@@ -1420,7 +1419,7 @@ void GetBeginOfShip(int** field, short y, short x, Vector* vec)
 			{
 				if (field[y][x - i] != SHIP && field[y][x - i] != DESTROYED)
 				{
-					vec->dir = DOWN;
+					vec->dir = LEFT;
 					vec->point.row = y;
 					vec->point.col = x - i + 1;
 					return;
@@ -1456,7 +1455,7 @@ void GetBeginOfShip(int** field, short y, short x, Vector* vec)
 			{
 				if (field[y][x - i] != SHIP && field[y][x - i] != DESTROYED)
 				{
-					vec->dir = DOWN;
+					vec->dir = LEFT;
 					vec->point.row = y;
 					vec->point.col = x - i + 1;
 					return;
@@ -1465,14 +1464,14 @@ void GetBeginOfShip(int** field, short y, short x, Vector* vec)
 			}
 		}
 		// Check to Up
-		else if (field[y + 1][x] == SHIP || field[y + 1][x] == DESTROYED)
+		else if (field[y - 1][x] == SHIP || field[y - 1][x] == DESTROYED)
 		{
 			// Get Top tip
 			for (size_t i = 2; i < 4; i++)
 			{
 				if (field[y - i][x] != SHIP && field[y - i][x] != DESTROYED)
 				{
-					vec->dir = DOWN;
+					vec->dir = UP;
 					vec->point.row = y - i + 1;
 					vec->point.col = x;
 					return;
@@ -1565,7 +1564,7 @@ void GetBeginOfShip(int** field, short y, short x, Vector* vec)
 			{
 				if (field[y - i][x] != SHIP && field[y - i][x] != DESTROYED)
 				{
-					vec->dir = LEFT;
+					vec->dir = UP;
 					vec->point.row = y - i + 1;
 					vec->point.col = x;
 					return;
@@ -1600,10 +1599,14 @@ void GetBeginOfShip(int** field, short y, short x, Vector* vec)
 		else
 		{
 			// Move to Up
-			for (size_t i = 2; i < 4; i++)
+			for (size_t i = 1; i < 4 || y - i != 0; i++) // added new &&
 			{
 				if (field[y - i][x] != SHIP && field[y - i][x] != DESTROYED)
 				{
+					if (y - i == 0)
+					{
+						++i;
+					}
 					vec->dir = UP;
 					vec->point.row = y - i + 1;
 					vec->point.col = x;
@@ -1648,10 +1651,14 @@ void GetBeginOfShip(int** field, short y, short x, Vector* vec)
 		}
 		else
 		{
-			for (size_t i = 2; i < 4; i++)
+			for (size_t i = 2; i < 4 || y - i != 0; i++)
 			{
-				if (field[y - i][x] != SHIP && field[y - i][x] != DESTROYED)
+				if (field[y - i][x] != SHIP && field[y - i][x] != DESTROYED) // added new &&
 				{
+					if (y - i == 0)
+					{
+						++i;
+					}
 					vec->dir = UP;
 					vec->point.row = y - i + 1;
 					vec->point.col = x;
@@ -1688,10 +1695,14 @@ void GetBeginOfShip(int** field, short y, short x, Vector* vec)
 			}
 			else // go to UP
 			{
-				for (size_t i = 2; i < 4; i++)
+				for (size_t i = 1; i < 4 || y - i != 0; i++) // added new &&
 				{
-					if (y - i >= 0 && field[y - i][x] != SHIP && field[y - i][x] != DESTROYED)
+					if ((y - i == 0) || (field[y - i][x] != SHIP && field[y - i][x] != DESTROYED))
 					{
+						if (y - i == 0)
+						{
+							++i;
+						}
 						vec->dir = UP;
 						vec->point.row = y - i + 1;
 						vec->point.col = x;
@@ -1712,10 +1723,14 @@ void GetBeginOfShip(int** field, short y, short x, Vector* vec)
 	}
 	else // we have to move to lefter
 	{
-		for (size_t i = 2; i < 4; i++)
+		for (size_t i = 1; i < 4 || x - i != 0; i++) // added new &&
 		{
-			if (x - i >= 0 && field[y][x - i] != SHIP && field[y][x - i] != DESTROYED)
+			if (field[y][x - i] != SHIP && field[y][x - i] != DESTROYED)
 			{
+				if (x - i == 0)
+				{
+					++i;
+				}
 				vec->dir = LEFT;
 				vec->point.row = y;
 				vec->point.col = x - i + 1;
