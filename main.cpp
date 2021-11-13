@@ -93,7 +93,7 @@ void DrawPlayerField(int** arr, int size = 10, short x = 0, short y = 0);
 
 void DrawEnemyField(int** arr, int size = 10, short x = 40, short y = 0);  ///в функции поменять Fog на Ship для отображения кораблей
 
-void MoveEnemy(int** field, int size);
+void MoveEnemy(int** field);
 
 void MovePlayer(int** field);
 
@@ -214,7 +214,7 @@ int main()
 		else
 		{
 			turn_player = true;
-			MoveEnemy(arrPlayer, Size);
+			MoveEnemy(arrPlayer);
 			if (IsDamage(arrPlayer, Enemy.row, Enemy.col))
 			{
 				PlayerLife--;
@@ -349,45 +349,19 @@ int RandNum(int** field, int size)
 	return 0;
 }
 
-void MoveEnemy(int** field, int size) //  Ход ИИ с генерацией рандомных координат
+void MoveEnemy(int** field) //  Ход ИИ с генерацией рандомных координат
 {
-	/*if (TrueShip)
-	{
-		if (SumShootDir(ShootDir, SizeShoot))
-		{
-			CheckToFailure(field, Enemy.row, Enemy.col);
-			CheckDirField(Enemy.row, Enemy.col);
-			ShootDamage(field, Enemy.row, Enemy.col);
-		}
-		else
-		{
-			TrueShip = false;
-		}
-
-	}*/
-	RandNum(field, size);
+	RandNum(field, Size);
 	
-
 	int cell = field[Enemy.row][Enemy.col];
 
 	if (cell == SHIP)
 	{
 		field[Enemy.row][Enemy.col] = DESTROYED;
-		/*Damage = true;
-		if (!TrueShip)
-		{
-			if (!CheckShipField(field, Enemy.row, Enemy.col))
-			{
-				TrueShip = false;
-				DrawShipsFailure(field, Enemy.col, Enemy.row);
-				ShootDirFalse();
-			}
-		}*/
 	}
 	else
 	{
 		field[Enemy.row][Enemy.col] = FAILURE;
-		//Damage = false;
 	}
 }
 
