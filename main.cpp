@@ -76,7 +76,7 @@ struct Vector
 	Point point;
 	int dir;
 	size_t length;
-} VectorEnemy;
+} VectorEnemy, VectorPlayer;
 
 struct EnemyBrain
 {
@@ -157,6 +157,7 @@ void InitEnemyBrain(EnemyBrain*);
 	void InitDirs(vector<int>* dirs);
 void DestroyEnemyBrain(EnemyBrain*);
 void ShootNearLucky();
+void CutImpossibleDir();
 ////////////////////////////////////////////////////////////////////////////////////////////
 
 int main()
@@ -237,6 +238,10 @@ int main()
 			{
 				PlayerLife--;
 				turn_player = false;
+				GetBeginOfShip(arrPlayer, row, col, &VectorPlayer);
+				GetSizeOfShip(arrPlayer, &VectorPlayer);
+				
+				enemy_brain.sniper_t = true;
 			/*	Sleep(6500);*/
 			/*	GetBeginOfShip(arrPlayer, Enemy.row, Enemy.col, &VectorPlayer);
 				GetSizeOfShip(arrPlayer, &VectorPlayer);*/
@@ -246,12 +251,12 @@ int main()
 				/*EnemyLuck.row = Enemy.row;
 				EnemyLuck.col = Enemy.col;*/
 				//#check is drawned
-				/*if (IsDrowned(arrPlayer, &VectorPlayer))
+				if (IsDrowned(arrPlayer, &VectorPlayer))
 				{
 					PrintDrowned();
 					CleanAreaOutOfDrawnedShip(arrPlayer, &VectorPlayer);
 					Sleep(6500);
-				}*/
+				}
 			}
 		}
 		system("cls");
@@ -389,8 +394,17 @@ void MoveEnemy(int** field) //  Ход ИИ с генерацией рандомных координат
 
 	int x =(*enemy_brain.steps_t)[0].col;
 	int y =(*enemy_brain.steps_t)[0].row;
-	enemy_brain.current_step_t->col = x;
-	enemy_brain.current_step_t->row = y;
+
+	if (enemy_brain.sniper_t == false)
+	{
+		enemy_brain.current_step_t->col = x;
+		enemy_brain.current_step_t->row = y;
+	}
+	else
+	{
+
+	}
+	
 	enemy_brain.steps_t->erase(enemy_brain.steps_t->begin());
 
 
@@ -1294,6 +1308,7 @@ void InitEnemyBrain(EnemyBrain* enemy)
 	enemy->current_step_t = new Point{ -1, -1 };
 	enemy->steps_t = new vector<Point>;
 	enemy->dirs_t = new vector<int>;
+	enemy->sniper_t = false;
 	InitSteps(enemy->steps_t);
 	InitDirs(enemy->dirs_t);
 }
@@ -1304,10 +1319,10 @@ void InitDirs(vector<int>* dirs)
 	dirs->push_back(UP);
 	dirs->push_back(RIGHT);
 	dirs->push_back(DOWN);
+	random_shuffle(dirs->begin(), dirs->end());
 }
 void DestroyEnemyBrain(EnemyBrain* enemy)
 {
-
 	delete enemy->steps_t;
 	delete enemy->dirs_t;
 	delete enemy->lucky_step_t;
@@ -1315,5 +1330,67 @@ void DestroyEnemyBrain(EnemyBrain* enemy)
 
 void ShootNearLucky()
 {
+	CutImpossibleDir();
+	int cur_dir = (*enemy_brain.dirs_t)[0];
+	int x = enemy_brain.lucky_step_t->col;
+	int y = enemy_brain.lucky_step_t->row;
+	/*switch (cur_dir)
+	{
+	case LEFT:
+		enemy_brain.current_step_t->col = x - 1;
+		enemy_brain.current_step_t->row = y;
+		break;
+	case UP:
+		enemy_brain.current_step_t->col = x;
+		enemy_brain.current_step_t->row = y - 1;
+		break;
+	case RIGHT:
+		enemy_brain.current_step_t->col = x + 1;
+		enemy_brain.current_step_t->row = y;
+		break;
+	case DOWN:
+		enemy_brain.current_step_t->col = x;
+		enemy_brain.current_step_t->row = y + 1;
+		break;
+	default:
+		break;
+	}
+	enemy_brain.dirs_t->erase(enemy_brain.dirs_t->begin());*/
+}
 
+void CutImpossibleDir()
+{
+	int cur_dir = (*enemy_brain.dirs_t)[0];
+	int x = enemy_brain.lucky_step_t->col;
+	int y = enemy_brain.lucky_step_t->row;
+	//cut imposible
+	switch (cur_dir)
+	{
+	case LEFT:
+		if (x == 0)
+		{
+			enemy_brain.dirs_t->erase(enemy_brain.dirs_t->begin());
+		}
+		break;
+	case UP:
+		if (y == 0)
+		{
+			enemy_brain.dirs_t->erase(enemy_brain.dirs_t->begin());
+		}
+		break;
+	case RIGHT:
+		if (x == Size - 1)
+		{
+			enemy_brain.dirs_t->erase(enemy_brain.dirs_t->begin());
+		}
+		break;
+	case DOWN:
+		if (y == Size - 1)
+		{
+			enemy_brain.dirs_t->erase(enemy_brain.dirs_t->begin());
+		}
+		break;
+	default:
+		break;
+	}
 }
