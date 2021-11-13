@@ -6,6 +6,7 @@
 #include <string.h>
 #include <locale>
 #include <algorithm>
+#include <vector>
 
 using namespace std;
 
@@ -23,7 +24,7 @@ const unsigned PAUSE = 1000;
 int Field_LEFT = 2;
 int Field_UP = 2;
 const short Menu_Y = (Tale_size_Y * Size + Field_UP * 2);
-const int Enemy_LEFT = (Field_LEFT + Tale_size_X)* Size ;
+const int Enemy_LEFT = (Field_LEFT + Tale_size_X) * Size;
 char letter_of_move;
 int Coord_X;
 short Coord_Y;
@@ -39,7 +40,6 @@ short EnemyLife = 20;
 ///
 
 bool Damaged = 0;
-
 
 enum Status
 {
@@ -75,25 +75,17 @@ struct Vector
 {
 	Point point;
 	int dir;
+	size_t length;
 } VectorPlayer, VectorEnemy;
 
-struct FreePoints
-{
-	Point points[14];
-	int length;
-} FreePointsPlayer, FreePointsEnemy;
-
-//struct FinishIt
-//{
-//	Point cells[14];
-//	int LeftUp;
-//}Finish;
+vector<Point> V_Steps_Enemy;
+Point EnemyLuck{ -1, -1 };
 
 void DrawPlayerField(int** arr, int size = 10, short x = 0, short y = 0);
 
 void DrawEnemyField(int** arr, int size = 10, short x = 40, short y = 0);  ///в функции поменять Fog на Ship для отображения кораблей
 
-void MoveEnemy(int** field, int size);
+void MoveEnemy(int** field);
 
 void MovePlayer(int** field);
 
@@ -138,20 +130,28 @@ bool IsDamage(int** field, short x, short y);
 bool IsAlivePlayer();
 bool IsAliveEnemy();
 ////////////////////////////////////////////////////////////////////////////////////////////
-//bool IsFinish(int** field, short x, short y);
-//bool IsUno(int** field, short x, short y);
-//bool IsDuo(int** field, short x, short y);
-//bool IsTre(int** field, short x, short y);
-//bool IsQuadro(int** field, short x, short y);
-////////////////////////////////////////////////////////////////////////////////////////////
+void CleanAreaOutOfDrawnedShip(int** field, Vector const* vec);
 
-////////////////////////////////////////////////////////////////////////////////////////////
-bool IsDrowned(int** field, short x, short y);
+bool IsDrowned(int** field, Vector const* vec);
 void GetBeginOfShip(int** field, short y, short x, Vector* vec);
-size_t GetSizeOfShip(int** field);
-void SetFreepoints(int** field, int length, FreePoints* fp);
+bool IsMonoShip(int** field, short y, short x);
+bool IsLeftOfShip(int** field, short y, short x);
+bool IsTopOfShip(int** field, short y, short x);
+int GetShiftX(int** field, short y, short x);
+int GetShiftY(int** field, short y, short x);
+bool IsCellShipOrDestroy(int** field, short y, short x);
+bool CanItBeLeft(int** field, short y, short x);
+
+void GetSizeOfShip(int** field, Vector* vec);
 
 void PrintVector(Vector const* v);
+void PrintDrowned();
+bool IsShip(int** field, short x, short y);
+////////////////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////////////////
+void InitSteps(vector<Point>* steps);
+void FindNewStep(int** field, vector<Point>* vp);
 ////////////////////////////////////////////////////////////////////////////////////////////
 
 int main()
@@ -167,14 +167,14 @@ int main()
 	{
 		arrPlayer[i] = new int[Size];
 	}
-	
+
 	int** arrEnemy = new int* [Size];
 
 	for (int i = 0; i < Size; i++)
 	{
 		arrEnemy[i] = new int[Size];
 	}
-	
+
 	for (size_t i = 0; i < Size; i++)
 	{
 		for (size_t j = 0; j < Size; j++)
@@ -185,11 +185,12 @@ int main()
 	}
 	InitField(arrEnemy);
 	InitField(arrPlayer);
+	InitSteps(&V_Steps_Enemy);
 	//begin main loop
 
 	bool turn_player = true;
 	bool win_player = false;
-	
+
 	while (IsAlivePlayer() && IsAliveEnemy())
 	{
 		DrawPlayerField(arrPlayer, Size);
@@ -206,19 +207,42 @@ int main()
 
 				//#Debug code
 				GetBeginOfShip(arrEnemy, User.row, User.col, &VectorEnemy);
-				PrintVector(&VectorEnemy);
-				Sleep(2300);
+				GetSizeOfShip(arrEnemy, &VectorEnemy);
+				//#PrintVector(&VectorEnemy);
+
+				//#check is drawned
+				if (IsDrowned(arrEnemy, &VectorEnemy))
+				{
+					PrintDrowned();
+					CleanAreaOutOfDrawnedShip(arrEnemy, &VectorEnemy);
+					Sleep(6500);
+				}
+
 			}
 		}
 
 		else
 		{
 			turn_player = true;
-			MoveEnemy(arrPlayer, Size);
+			MoveEnemy(arrPlayer);
 			if (IsDamage(arrPlayer, Enemy.row, Enemy.col))
 			{
 				PlayerLife--;
 				turn_player = false;
+				GetBeginOfShip(arrPlayer, Enemy.row, Enemy.col, &VectorPlayer);
+				GetSizeOfShip(arrPlayer, &VectorPlayer);
+				//#PrintVector(&VectorEnemy);
+
+				//Remember lucky step
+				/*EnemyLuck.row = Enemy.row;
+				EnemyLuck.col = Enemy.col;*/
+				//#check is drawned
+				if (IsDrowned(arrPlayer, &VectorPlayer))
+				{
+					PrintDrowned();
+					CleanAreaOutOfDrawnedShip(arrPlayer, &VectorPlayer);
+					Sleep(6500);
+				}
 			}
 		}
 		system("cls");
@@ -245,7 +269,7 @@ int main()
 	}
 
 	delete[] arrPlayer;
-	
+
 	for (int i = 0; i < Size; i++) // удаление из памяти массива поля ИИ
 	{
 		delete[] arrEnemy[i];
@@ -264,7 +288,7 @@ void DrawPlayerField(int** field, int size, short x, short y) // отрисовка поля 
 		SetConsoleCursorPosition(hStdOut, { short(x + shift_X + i * Tale_size_X), short(y) });
 		cout << TopFrame[i];
 	}
-	
+
 	for (size_t row = 0; row < size; row++)
 	{
 		SetConsoleCursorPosition(hStdOut, { short(x), short(y + 2 + row * Tale_size_Y) });
@@ -324,7 +348,7 @@ void DrawEnemyField(int** field, int size, short x, short y) //отрисовка поля ИИ
 			case FOG:
 				cout << Fog;
 				break;
-			
+
 			case DESTROYED:
 				cout << Destroyed;
 				break;
@@ -349,45 +373,22 @@ int RandNum(int** field, int size)
 	return 0;
 }
 
-void MoveEnemy(int** field, int size) //  Ход ИИ с генерацией рандомных координат
+void MoveEnemy(int** field) //  Ход ИИ с генерацией рандомных координат
 {
-	/*if (TrueShip)
-	{
-		if (SumShootDir(ShootDir, SizeShoot))
-		{
-			CheckToFailure(field, Enemy.row, Enemy.col);
-			CheckDirField(Enemy.row, Enemy.col);
-			ShootDamage(field, Enemy.row, Enemy.col);
-		}
-		else
-		{
-			TrueShip = false;
-		}
+	RandNum(field, Size);
+	// get Ffirst elem and erase it
 
-	}*/
-	RandNum(field, size);
-	
 
 	int cell = field[Enemy.row][Enemy.col];
-
+	// Change state of current cell
 	if (cell == SHIP)
 	{
 		field[Enemy.row][Enemy.col] = DESTROYED;
-		/*Damage = true;
-		if (!TrueShip)
-		{
-			if (!CheckShipField(field, Enemy.row, Enemy.col))
-			{
-				TrueShip = false;
-				DrawShipsFailure(field, Enemy.col, Enemy.row);
-				ShootDirFalse();
-			}
-		}*/
+
 	}
 	else
 	{
 		field[Enemy.row][Enemy.col] = FAILURE;
-		//Damage = false;
 	}
 }
 
@@ -416,7 +417,7 @@ void MovePlayer(int** field) // Ход Игрока с проверкой введенных значений
 void ToUpperChar(char* ch)
 {
 	const char shift = 'A' - 'a';
-	
+
 	if (*ch >= 'a' && *ch <= 'z')
 	{
 		*ch += shift;
@@ -491,7 +492,7 @@ void InitField(int** field)
 				SetShip(field, x, y, 4, dir);
 				++cnt;
 			}
-			
+
 		}
 		//Set 3x
 		else if (cnt < 3)
@@ -534,7 +535,7 @@ bool IsAllowedToSet(int** field, short x, short y)
 			if (
 				field[y][x + 1] == SHIP ||
 				field[y + 1][x] == SHIP || field[y + 1][x + 1] == SHIP
-				)	
+				)
 				return false;
 		}
 		else if (x == Size - 1)
@@ -586,7 +587,7 @@ bool IsAllowedToSet(int** field, short x, short y)
 		if (x == 0)
 		{
 			if (
-				field[y - 1][x] == SHIP || field[y - 1][x + 1] == SHIP || 
+				field[y - 1][x] == SHIP || field[y - 1][x + 1] == SHIP ||
 				field[y][x + 1] == SHIP ||
 				field[y + 1][x] == SHIP || field[y + 1][x + 1] == SHIP
 				)
@@ -644,7 +645,7 @@ int GetAllowedDirection(int** field, short x, short y, int size)
 				results[head++] = RIGHT;
 			}
 			//check to down
-			if(CheckDown(field, x, y, size))
+			if (CheckDown(field, x, y, size))
 			{
 				results[head++] = DOWN;
 			}
@@ -652,7 +653,7 @@ int GetAllowedDirection(int** field, short x, short y, int size)
 		else if (x == (Size - 1))
 		{
 			//check to left
-			if(CheckLeft(field, x, y, size))
+			if (CheckLeft(field, x, y, size))
 			{
 				results[head++] = LEFT;
 			}
@@ -900,10 +901,10 @@ bool CheckDown(int** field, short x, short y, int size)
 
 short SumShootDir(bool* arr, short size)
 {
-    if (size > 0)
-        return arr[size - 1] + SumShootDir(arr, size - 1);
-    else
-        return 0;
+	if (size > 0)
+		return arr[size - 1] + SumShootDir(arr, size - 1);
+	else
+		return 0;
 }
 
 int CheckToFailure(int** field, short x, short y)
@@ -1157,7 +1158,7 @@ int DrawShipsFailure(int** field, short x, short y)
 				if ((x - 1) >= 0)
 				{
 					field[y - 1][x - 1] = FAILURE;
-					
+
 				}
 				field[y - 1][x] = FAILURE;
 				if ((x + 1) < Size)
@@ -1198,7 +1199,7 @@ int DrawShipsFailure(int** field, short x, short y)
 				if ((y - 1) >= 0)
 				{
 					field[y - 1][x + 1] = FAILURE;
-									
+
 				}
 				field[y][x + 1] = FAILURE;
 				if ((y + 1) < Size)
@@ -1239,7 +1240,7 @@ int DrawShipsFailure(int** field, short x, short y)
 				if ((x + 1) < Size)
 				{
 					field[y + 1][x + 1] = FAILURE;
-										
+
 				}
 				field[y + 1][x] = FAILURE;
 				if ((x - 1) >= 0)
@@ -1280,7 +1281,7 @@ int DrawShipsFailure(int** field, short x, short y)
 				if ((y - 1) >= 0)
 				{
 					field[y - 1][x - 1] = FAILURE;
-					
+
 				}
 				field[y][x - 1] = FAILURE;
 				if ((y + 1) < Size)
@@ -1343,402 +1344,298 @@ bool IsAliveEnemy()
 	return EnemyLife != 0;
 }
 
+void CleanAreaOutOfDrawnedShip(int** field, Vector const* vec)
+{
+	int lefter = vec->point.col - 1;
+	int upper = vec->point.row - 1;
+	int const iters = 3;
+	int rows, cols;
+	int longer = vec->length + 2;
+	if (vec->dir == LEFT)
+	{
+		rows = iters;
+		cols = longer;
+	}
+	else
+	{
+		rows = longer;
+		cols = iters;
+	}
+
+	for (int i = 0; i < rows; i++)
+	{
+		for (int j = 0; j < cols; j++)
+		{
+			if (upper + i < 0 || upper + i >= Size
+				|| lefter + j < 0 || lefter + j >= Size
+				|| field[upper + i][lefter + j] == DESTROYED
+				)
+			{
+				continue;
+			}
+			field[upper + i][lefter + j] = EMPTY;
+		}
+	}
+
+}
+
+
+
+bool IsDrowned(int** field, Vector const* vec)
+{
+	int left = vec->point.col;
+	int up = vec->point.row;
+	int len = vec->length;
+	if (vec->dir == LEFT)
+	{
+		for (size_t i = 0; i < len; i++)
+		{
+			if (field[up][left + i] != DESTROYED)
+			{
+				return false;
+			}
+		}
+	}
+	else // UP
+	{
+		for (size_t i = 0; i < len; i++)
+		{
+			if (field[up + i][left] != DESTROYED)
+			{
+				return false;
+			}
+		}
+	}
+
+	return true;
+}
+
 void GetBeginOfShip(int** field, short y, short x, Vector* vec)
 {
-	if (x == 0 && y == 0)
+	// Check Monoship
+	if (IsMonoShip(field, y, x))
 	{
-		// Check to right
-		if (field[y][x + 1] == SHIP || field[y][x + 1] == DESTROYED)
-		{
-			// Get left tip
-			vec->dir = RIGHT;
-			vec->point.row = y;
-			vec->point.col = x;
-			return;
-		}
-		// Check to down
-		else if (field[y + 1][x] == SHIP || field[y + 1][x] == DESTROYED)
-		{
-			// Get Top tip
-			vec->dir = DOWN;
-			vec->point.row = y;
-			vec->point.col = x;
-			return;
-		}
-		// MonoShip!!
-		else
-		{
-			vec->dir = IMPOSSIBLE;
-			vec->point.row = y;
-			vec->point.col = x;
-		}
+		vec->dir = IMPOSSIBLE;
+		vec->point.row = y;
+		vec->point.col = x;
+		return;
 	}
-	
-	if (x == 0 && y == Size - 1)
+	// Check Left
+	if (IsLeftOfShip(field, y, x))
 	{
-		// Check to right
-		if (field[y][x + 1] == SHIP || field[y][x + 1] == DESTROYED)
-		{
-			// Get left tip
-			vec->dir = RIGHT;
-			vec->point.row = y;
-			vec->point.col = x;
-			return;
-		}
-		// Check to Up
-		else if (field[y - 1][x] == SHIP || field[y - 1][x] == DESTROYED)
-		{
-			for (size_t i = 2; i < 4; i++)
-			{
-				if (field[y - i][x] != SHIP && field[y - i][x] != DESTROYED)
-				{
-					vec->dir = UP;
-					vec->point.row = y - i + 1;
-					vec->point.col = x;
-					return;
-					break;
-				}
-			}
-		}
-		// MonoShip!!
-		else
-		{
-			vec->dir = IMPOSSIBLE;
-			vec->point.row = y;
-			vec->point.col = x;
-		}
+		vec->dir = LEFT;
+		vec->point.row = y;
+		vec->point.col = x;
+		return;
 	}
+	// Check Up
+	if (IsTopOfShip(field, y, x))
+	{
+		vec->dir = UP;
+		vec->point.row = y;
+		vec->point.col = x;
+		return;
+	}
+	// Try to find left
+	if (CanItBeLeft(field, y, x))
+	{
+		vec->dir = LEFT;
+		vec->point.row = y;
+		vec->point.col = x - GetShiftX(field, y, x);
+		return;
+	}
+	else// Try to find up
+	{
+		vec->dir = UP;
+		vec->point.row = y - GetShiftY(field, y, x);
+		vec->point.col = x;
+	}
+}
 
-	if (x == Size - 1 && y == 0)
-	{
-		// Check to left
-		if (field[y][x - 1] == SHIP || field[y][x - 1] == DESTROYED)
-		{
-			// Get left tip
-			for (size_t i = 2; i < 4; i++)
-			{
-				if (field[y][x - i] != SHIP && field[y][x - i] != DESTROYED)
-				{
-					vec->dir = LEFT;
-					vec->point.row = y;
-					vec->point.col = x - i + 1;
-					return;
-					break;
-				}
-			}
-		}
-		// Check to Up
-		else if (field[y + 1][x] == SHIP || field[y + 1][x] == DESTROYED)
-		{
-			// Get Top tip
-			vec->dir = DOWN;
-			vec->point.row = y;
-			vec->point.col = x;
-			return;
-		}
-		// MonoShip!!
-		else
-		{
-			vec->dir = IMPOSSIBLE;
-			vec->point.row = y;
-			vec->point.col = x;
-		}
-	}
-
-	if (x == Size - 1 && y == Size - 1)
-	{
-		// Check to left
-		if (field[y][x - 1] == SHIP || field[y][x - 1] == DESTROYED)
-		{
-			// Get left tip
-			for (size_t i = 2; i < 4; i++)
-			{
-				if (field[y][x - i] != SHIP && field[y][x - i] != DESTROYED)
-				{
-					vec->dir = LEFT;
-					vec->point.row = y;
-					vec->point.col = x - i + 1;
-					return;
-					break;
-				}
-			}
-		}
-		// Check to Up
-		else if (field[y - 1][x] == SHIP || field[y - 1][x] == DESTROYED)
-		{
-			// Get Top tip
-			for (size_t i = 2; i < 4; i++)
-			{
-				if (field[y - i][x] != SHIP && field[y - i][x] != DESTROYED)
-				{
-					vec->dir = UP;
-					vec->point.row = y - i + 1;
-					vec->point.col = x;
-					return;
-					break;
-				}
-			}
-			return;
-		}
-		// MonoShip!!
-		else
-		{ 
-			vec->dir = IMPOSSIBLE;
-			vec->point.row = y;
-			vec->point.col = x;
-		}
-	}
-
-	if (y == 0)
-	{
-		// Check to left
-		if (field[y][x - 1] == SHIP || field[y][x - 1] == DESTROYED)
-		{
-			// Get left tip
-			for (size_t i = 2; i < 4 ; i++)
-			{
-				if (x - i >= 0 && field[y][x - i] != SHIP && field[y][x - i] != DESTROYED)
-				{
-					vec->dir = LEFT;
-					vec->point.row = y;
-					vec->point.col = x - i + 1;
-					return;
-					break;
-				}
-			}
-		}
-		else if (field[y][x + 1] != SHIP && field[y][x + 1] != DESTROYED)
-		{
-			// MonoShip!!
-			if (field[y + 1][x] != SHIP && field[y + 1][x] != DESTROYED)
-			{
-				vec->dir = IMPOSSIBLE;
-				vec->point.row = y;
-				vec->point.col = x;
-				return;
-			}
-			// Get Top tip
-			vec->dir = DOWN;
-			vec->point.row = y;
-			vec->point.col = x;
-			return;
-		}
-		else
-		{
-			vec->dir = LEFT;
-			vec->point.row = y;
-			vec->point.col = x;
-		}
-	}
-
-	if (y == Size - 1)
-	{
-		// Check to left
-		if (field[y][x - 1] == SHIP || field[y][x - 1] == DESTROYED)
-		{
-			// Get left tip
-			for (size_t i = 2; i < 4; i++)
-			{
-				if (x - i >= 0 && field[y][x - i] != SHIP && field[y][x - i] != DESTROYED)
-				{
-					vec->dir = LEFT;
-					vec->point.row = y;
-					vec->point.col = x - i + 1;
-					return;
-					break;
-				}
-			}
-		}
-		else if (field[y][x + 1] != SHIP && field[y][x + 1] != DESTROYED)
-		{
-			// MonoShip!!
-			if (field[y - 1][x] != SHIP && field[y - 1][x] != DESTROYED)
-			{
-				vec->dir = IMPOSSIBLE;
-				vec->point.row = y;
-				vec->point.col = x;
-				return;
-			}
-			// Get Top tip
-			for (size_t i = 2; i < 4; i++)
-			{
-				if (field[y - i][x] != SHIP && field[y - i][x] != DESTROYED)
-				{
-					vec->dir = UP;
-					vec->point.row = y - i + 1;
-					vec->point.col = x;
-					return;
-					break;
-				}
-			}
-			return;
-		}
-	}
-
+bool IsMonoShip(int** field, short y, short x)
+{
 	if (x == 0)
 	{
-		if (field[y][x + 1] == SHIP || field[y][x + 1] == DESTROYED)
-		{
-			vec->dir = LEFT;
-			vec->point.row = y;
-			vec->point.col = x;
-			return;
-		}
-		else if (field[y - 1][x] != SHIP && field[y - 1][x] != DESTROYED)
-		{
-			// MonoShip
-			if (field[y + 1][x] != SHIP && field[y + 1][x] != DESTROYED)
-			{
-				vec->dir = IMPOSSIBLE;
-				vec->point.row = y;
-				vec->point.col = x;
-				return;
-			}
 
+		if (y == 0)
+		{
+			return  !IsCellShipOrDestroy(field, y, x + 1) // check righter
+				&&
+				!IsCellShipOrDestroy(field, y + 1, x); // check botomer
+		}
+		else if (y < Size - 1)
+		{
+			return  !IsCellShipOrDestroy(field, y, x + 1) // check righter
+				&&
+				!IsCellShipOrDestroy(field, y + 1, x) // check botomer
+				&&
+				!IsCellShipOrDestroy(field, y - 1, x); // check upper
 		}
 		else
 		{
-			// Move to Up
-			for (size_t i = 1; i < 4 || y - i != 0; i++) // added new &&
-			{
-				if (field[y - i][x] != SHIP && field[y - i][x] != DESTROYED)
-				{
-					if (y - i == 0)
-					{
-						++i;
-					}
-					vec->dir = UP;
-					vec->point.row = y - i + 1;
-					vec->point.col = x;
-					return;
-					break;
-				}
-			}
+			return	!IsCellShipOrDestroy(field, y, x + 1) // check righter
+				&&
+				!IsCellShipOrDestroy(field, y - 1, x); // check upper
 		}
 	}
-
-	if (x == Size - 1)
+	else if (x < Size - 1)
 	{
-		// go to Left
-		if (field[y][x - 1] == SHIP || field[y][x - 1] == DESTROYED)
+
+		if (y == 0)
 		{
-			for (size_t i = 2; i < 4; i++)
-			{
-				if (field[y][x - i] != SHIP && field[y][x - i] != DESTROYED)
-				{
-					vec->dir = LEFT;
-					vec->point.row = y;
-					vec->point.col = x - i + 1;
-					return;
-					break;
-				}
-			}
+			return  !IsCellShipOrDestroy(field, y, x + 1) // check righter
+				&&
+				!IsCellShipOrDestroy(field, y, x - 1) // check lefter
+				&&
+				!IsCellShipOrDestroy(field, y + 1, x); // check botommer
 		}
-		else if (field[y - 1][x] != SHIP && field[y - 1][x] != DESTROYED)
+		else if (y < Size - 1)
 		{
-			// MonoShip
-			if (field[y + 1][x] != SHIP && field[y + 1][x] != DESTROYED)
-			{
-				vec->dir = IMPOSSIBLE;
-				vec->point.row = y;
-				vec->point.col = x;
-				return;
-			}
-			vec->dir = UP;
-			vec->point.row = y;
-			vec->point.col = x;
-			return;
+			return	!IsCellShipOrDestroy(field, y, x + 1) // check righter
+				&&
+				!IsCellShipOrDestroy(field, y, x - 1) // check lefter
+				&&
+				!IsCellShipOrDestroy(field, y - 1, x) // check upper
+				&&
+				!IsCellShipOrDestroy(field, y + 1, x); // check botommer
 		}
 		else
 		{
-			for (size_t i = 2; i < 4 || y - i != 0; i++)
-			{
-				if (field[y - i][x] != SHIP && field[y - i][x] != DESTROYED) // added new &&
-				{
-					if (y - i == 0)
-					{
-						++i;
-					}
-					vec->dir = UP;
-					vec->point.row = y - i + 1;
-					vec->point.col = x;
-					return;
-					break;
-				}
-			}
+			return	!IsCellShipOrDestroy(field, y, x + 1) // check righter
+				&&
+				!IsCellShipOrDestroy(field, y, x - 1) // check lefter
+				&&
+				!IsCellShipOrDestroy(field, y - 1, x); // check upper
 		}
 	}
-
-	//Isn't border
-	// check lefter
-	if (field[y][x - 1] != SHIP && field[y][x - 1] != DESTROYED)
+	else
 	{
-		// check righter
-		// bad situation it's have to check vertical
-		if (field[y][x + 1] != SHIP && field[y][x + 1] != DESTROYED)
+
+		if (y == 0)
 		{
-			//Vertical
-			if (field[y - 1][x] != SHIP && field[y - 1][x] != DESTROYED)
-			{
-				//MonoShip
-				if (field[y + 1][x] != SHIP && field[y + 1][x] != DESTROYED)
-				{
-					vec->dir = IMPOSSIBLE;
-					vec->point.row = y;
-					vec->point.col = x;
-					return;
-				}
-				vec->dir = UP;
-				vec->point.row = y;
-				vec->point.col = x;
-				return;
-			}
-			else // go to UP
-			{
-				for (size_t i = 1; i < 4 || y - i != 0; i++) // added new &&
-				{
-					if ((y - i == 0) || (field[y - i][x] != SHIP && field[y - i][x] != DESTROYED))
-					{
-						if (y - i == 0)
-						{
-							++i;
-						}
-						vec->dir = UP;
-						vec->point.row = y - i + 1;
-						vec->point.col = x;
-						return;
-						break;
-					}
-				}
-			}
+			return	!IsCellShipOrDestroy(field, y, x - 1) // check lefter
+				&&
+				!IsCellShipOrDestroy(field, y + 1, x); // check botommer
 		}
-		// horizontal!!
+		else if (y < Size - 1)
+		{
+			return	!IsCellShipOrDestroy(field, y, x - 1) // check lefter
+				&&
+				!IsCellShipOrDestroy(field, y - 1, x) // check upper
+				&&
+				!IsCellShipOrDestroy(field, y + 1, x); // check botommer
+		}
 		else
 		{
-			vec->dir = LEFT;
-			vec->point.row = y;
-			vec->point.col = x;
-			return;
+			return	!IsCellShipOrDestroy(field, y, x - 1) // check lefter
+				&&
+				!IsCellShipOrDestroy(field, y - 1, x); // check upper
 		}
 	}
-	else // we have to move to lefter
+}
+
+bool IsLeftOfShip(int** field, short y, short x)
+{
+	if (x == 0)
 	{
-		for (size_t i = 1; i < 4 || x - i != 0; i++) // added new &&
+		return	IsCellShipOrDestroy(field, y, x + 1); // check righter
+	}
+	else if (x < Size - 1)
+	{
+		return	IsCellShipOrDestroy(field, y, x + 1) // check righter
+			&& !IsCellShipOrDestroy(field, y, x - 1);// check lefter
+	}
+	else
+	{
+		return false;
+	}
+}
+
+bool IsTopOfShip(int** field, short y, short x)
+{
+	if (y == 0)
+	{
+		return	IsCellShipOrDestroy(field, y + 1, x); // check upper
+	}
+	else if (y < Size - 1)
+	{
+		return	IsCellShipOrDestroy(field, y + 1, x) // check upper
+			&& !IsCellShipOrDestroy(field, y - 1, x);// check downer
+	}
+	else
+	{
+		return false;
+	}
+}
+
+int GetShiftX(int** field, short y, short x)
+{
+	int i = 1;
+	while (true)
+	{
+		if (IsLeftOfShip(field, y, x - i))
 		{
-			if (field[y][x - i] != SHIP && field[y][x - i] != DESTROYED)
+			break;
+		}
+		i++;
+	}
+	return i;
+}
+
+int GetShiftY(int** field, short y, short x)
+{
+	int i = 1;
+	while (true)
+	{
+		if (IsTopOfShip(field, y - i, x))
+		{
+			break;
+		}
+		i++;
+	}
+	return i;
+}
+
+bool IsCellShipOrDestroy(int** field, short y, short x)
+{
+	return field[y][x] == SHIP || field[y][x] == DESTROYED;
+}
+
+bool CanItBeLeft(int** field, short y, short x)
+{
+	return IsCellShipOrDestroy(field, y, x - 1);
+}
+
+void GetSizeOfShip(int** field, Vector* left_or_up)
+{
+	size_t len = 0;
+	// Left
+	if (left_or_up->dir == LEFT)
+	{
+		while (true)
+		{
+			len++;
+			if (left_or_up->point.col + len == Size || !IsCellShipOrDestroy(field, left_or_up->point.row, left_or_up->point.col + len))
 			{
-				if (x - i == 0)
-				{
-					++i;
-				}
-				vec->dir = LEFT;
-				vec->point.row = y;
-				vec->point.col = x - i + 1;
-				return;
 				break;
 			}
 		}
 	}
+	// Up
+	else
+	{
+		while (true)
+		{
+			len++;
+			if (left_or_up->point.row + len == Size || !IsCellShipOrDestroy(field, left_or_up->point.row + len, left_or_up->point.col))
+			{
+				break;
+			}
+		}
+	}
+	//
+	//write length 
+	left_or_up->length = len;
 }
 
 void PrintVector(Vector const* v)
@@ -1762,46 +1659,63 @@ void PrintVector(Vector const* v)
 	default:
 		break;
 	}
+	printf("\tlen=%d", v->length);
 }
 
-//bool IsFinish(int** field, short x, short y)
-//{
-//	if (IsUno(field, x, y))
-//	{
-//		return true;
-//	}
-//	else if(IsDuo(field, x, y))
-//	{
-//		return true;
-//	}
-//	else if (IsTre(field, x, y))
-//	{
-//		return true;
-//	}
-//	else if (IsQuadro(field, x, y))
-//	{
-//		return true;
-//	}
-//	return false;
-//}
-//
-//bool IsUno(int** field, short x, short y)
-//{
-//
-//	return false;
-//}
-//
-//bool IsDuo(int** field, short x, short y)
-//{
-//	return false;
-//}
-//
-//bool IsTre(int** field, short x, short y)
-//{
-//	return false;
-//}
-//
-//bool IsQuadro(int** field, short x, short y)
-//{
-//	return false;
-//}
+void PrintDrowned()
+{
+	SetConsoleCursorPosition(hStdOut, { 0, 26 });
+	printf("\tDRAWNED!!");
+}
+
+bool IsShip(int** field, short y, short x)
+{
+	SetConsoleCursorPosition(hStdOut, { 0, 25 });
+	/*printf("{y=%d, x=%d}", y, x);
+	Sleep(6500);*/
+	return field[y][x] == SHIP || field[y][x] == DESTROYED;
+}
+
+void InitSteps(vector<Point>* steps)
+{
+	for (short i = 0; i < Size; i++)
+	{
+		for (short j = 0; j < Size; j++)
+		{
+			steps->push_back({ i, j });
+		}
+	}
+	random_shuffle(steps->begin(), steps->end());
+}
+
+void FindNewStep(int** field, vector<Point>* vp)
+{
+	int row = EnemyLuck.row;
+	int col = EnemyLuck.col;
+	vector<Point> fitPoints;
+	// add posiple neibours turn
+	if (row - 1 > 0 && field[row - 1][col] != FAILURE && field[row - 1][col] != DESTROYED)
+		fitPoints.push_back({ row - 1, col });
+	if (row + 1 < Size && field[row + 1][col] != FAILURE && field[row + 1][col] != DESTROYED)
+		fitPoints.push_back({ row + 1, col });
+	if (col - 1 > 0 && field[row][col - 1] != FAILURE && field[row][col - 1] != DESTROYED)
+		fitPoints.push_back({ row, col - 1 });
+	if (col + 1 < Size && field[row][col + 1] != FAILURE && field[row][col + 1] != DESTROYED)
+		fitPoints.push_back({ row, col + 1 });
+	//Shuffle and get first elem
+	random_shuffle(fitPoints.begin(), fitPoints.end());
+
+	// Swap with first elem vp
+
+	Enemy.row = fitPoints[0].row;
+	Enemy.col = fitPoints[0].col;
+	auto it = find_if(vp->begin(), vp->end(),
+		[](auto& e)
+		{
+			return e.row == Enemy.row && e.col == Enemy.col;
+		}
+	);
+	// swap 
+	iter_swap(vp->begin(), it);
+}
+
