@@ -73,6 +73,7 @@ struct Vector
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 vector<Point> vec_enemy_turns;
+void MoveEnemy(int** field);
 void Init_vec_enemy_turns();
 void RandNum(int** field);
 void EnemyTurn(int** field);
@@ -81,7 +82,6 @@ void PrintEnemyTurn();
 ////////////////////////////////////////////////////////////////////////////////////////////
 void DrawPlayerField(int** arr, int size = 10, short x = 0, short y = 0);
 void DrawEnemyField(int** arr, int size = 10, short x = 40, short y = 0);  ///в функции поменять Fog на Ship для отображения кораблей
-void MoveEnemy(int** field);
 void MovePlayer(int** field);
 void ToUpperChar(char* ch);
 bool ReadUser(char Uchar, int Uint);
@@ -1248,8 +1248,8 @@ void EnemyTurn(int** field)
 
 void MoveEnemy(int** field) //  Ход ИИ с генерацией рандомных координат
 {
-	RandNum(field);
-	//EnemyTurn(field);
+	//RandNum(field);
+	EnemyTurn(field);
 	int cell = field[Enemy.row][Enemy.col];
 	// Change state of current cell if it possible
 	if (!IsValidCell(field, Enemy.row, Enemy.col))
