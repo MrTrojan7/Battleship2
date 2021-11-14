@@ -77,8 +77,9 @@ void MoveEnemy(int** field);
 void Init_vec_enemy_turns();
 void RandNum(int** field);
 void EnemyTurn(int** field);
-
+void EraseEnemyTurns(int** field);
 void PrintEnemyTurn();
+void PrintEnemyVectorSize();
 ////////////////////////////////////////////////////////////////////////////////////////////
 void DrawPlayerField(int** arr, int size = 10, short x = 0, short y = 0);
 void DrawEnemyField(int** arr, int size = 10, short x = 40, short y = 0);  ///в функции поменять Fog на Ship для отображения кораблей
@@ -186,9 +187,9 @@ int main()
 				//#check is drawned
 				if (IsDrowned(arrEnemy, &VectorEnemy))
 				{
-					PrintDrowned();
+					//PrintDrowned();
 					CleanAreaOutOfDrawnedShip(arrEnemy, &VectorEnemy);
-					Sleep(6500);
+					//Sleep(6500);
 				}
 
 			}
@@ -203,8 +204,8 @@ int main()
 			turn_player = true;
 			MoveEnemy(arrPlayer);
 
-			/*PrintEnemyTurn();
-			Sleep(6500);*/
+			PrintEnemyTurn();
+			//Sleep(3000);
 
 			if (IsDamage(arrPlayer, Enemy.row, Enemy.col))
 			{
@@ -221,9 +222,12 @@ int main()
 				{
 					//PrintDrowned();
 					CleanAreaOutOfDrawnedShip(arrPlayer, &VectorPlayer);
+					EraseEnemyTurns(arrPlayer);
 					//Sleep(6500);
 				}
 			}
+			PrintEnemyVectorSize();
+			Sleep(3000);
 		}
 		system("cls");
 	}
@@ -1198,6 +1202,12 @@ void PrintEnemyTurn()
 	printf("y=%d x=%d", Enemy.row, Enemy.col);
 }
 
+void PrintEnemyVectorSize()
+{
+	SetConsoleCursorPosition(hStdOut, { 0, 27 });
+	printf("size=%d", vec_enemy_turns.size());
+}
+
 void Init_vec_enemy_turns()
 {
 	for (int i = 0; i < Size; i++)
@@ -1212,11 +1222,6 @@ void Init_vec_enemy_turns()
 
 bool IsValidCell(int** field, int row, int col)
 {
-	/*if (field[row][col] == SHIP || field[row][col] == FOG)
-	{
-		return true;
-	}
-	return false;*/
 	return field[row][col] != DESTROYED && field[row][col] != FAILURE;
 }
 
@@ -1233,6 +1238,8 @@ void EnemyTurn(int** field)
 {
 	int row = vec_enemy_turns[0].row;
 	int col = vec_enemy_turns[0].col;
+	if (vec_enemy_turns.size() > 0)
+		vec_enemy_turns.erase(vec_enemy_turns.begin());
 	if (IsValidCell(field, row, col))
 	{
 		Enemy.row = row;
@@ -1240,10 +1247,43 @@ void EnemyTurn(int** field)
 	}
 	else
 	{
-		SetConsoleCursorPosition(hStdOut, { 0, 26 });
+		/*SetConsoleCursorPosition(hStdOut, { 0, 26 });
 		printf("\ty=%d x=%d", Enemy.row, Enemy.col);
-		Sleep(5700);
+		Sleep(500);*/
 	}
+}
+
+void EraseEnemyTurns(int** field)
+{
+	/*SetConsoleCursorPosition(hStdOut, { 0, 25 });
+	printf("{y=%d, x=%d} ", row, col);
+	Sleep(2000);*/
+
+	for (int row = 0; row < Size; row++)
+	{
+		for (int col = 0; col < Size; col++)
+		{
+			if (field[row][col] == EMPTY)
+			{
+				Point tmp{ row, col };
+				auto it = find_if(vec_enemy_turns.begin(), vec_enemy_turns.end(),
+					[&tmp](Point const& p)
+					{
+						return p.row == tmp.row && p.col == tmp.col;
+					}
+				);
+				if (it != vec_enemy_turns.end())
+				{
+					vec_enemy_turns.erase(it);
+					/*SetConsoleCursorPosition(hStdOut, { 0, 25 });
+					printf("{Drowned##y=%d, x=%d} ", row, col);
+					Sleep(3000);*/
+				}
+			}
+		}
+	}
+	
+	
 }
 
 void MoveEnemy(int** field) //  Ход ИИ с генерацией рандомных координат
@@ -1252,15 +1292,11 @@ void MoveEnemy(int** field) //  Ход ИИ с генерацией рандомных координат
 	EnemyTurn(field);
 	int cell = field[Enemy.row][Enemy.col];
 	// Change state of current cell if it possible
-	if (!IsValidCell(field, Enemy.row, Enemy.col))
-	{
-		return;
-	}
 	if (cell == SHIP)
 	{
 		field[Enemy.row][Enemy.col] = DESTROYED;
 	}
-	else
+	else if (cell != DESTROYED)
 	{
 		field[Enemy.row][Enemy.col] = FAILURE;
 	}
