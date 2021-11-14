@@ -74,6 +74,7 @@ struct Vector
 ////////////////////////////////////////////////////////////////////////////////////////////
 vector<Point> vec_enemy_turns;
 int changes_step = 0;
+
 void PrintChanges();
 
 void Init_vec_enemy_turns();
