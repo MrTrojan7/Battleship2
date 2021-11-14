@@ -74,7 +74,8 @@ struct Vector
 ////////////////////////////////////////////////////////////////////////////////////////////
 vector<Point> vec_enemy_turns;
 void Init_vec_enemy_turns();
-void RandNum(int** field, int size);	
+void RandNum(int** field);
+void EnemyTurn(int** field);
 
 void PrintEnemyTurn();
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -88,7 +89,7 @@ bool IsValidNum(int num);
 bool IsValidChar(char ch);
 void BatleParser(const char* src, char* ch, int* num);
 void DrawMenu(short y, short x = 0);
-bool IsValidNum(int** field, int col, int row);
+bool IsValidCell(int** field, int col, int row);
 ////////////////////////////////////////////////////////////////////////////////////////////
 void InitField(int** field);
 bool IsAllowedToSet(int** field, short x, short y);
@@ -129,6 +130,8 @@ int main()
 	SetConsoleTitle(TEXT("Морской Бой"));
 	srand(time(NULL));
 
+	Init_vec_enemy_turns();
+
 	int** arrPlayer = new int* [Size];
 	for (int i = 0; i < Size; i++)
 	{
@@ -157,13 +160,17 @@ int main()
 	bool turn_player = true;
 	bool win_player = false;
 
-	while (IsAlivePlayer() && IsAliveEnemy())
+	while (true)
 	{
 		DrawPlayerField(arrPlayer, Size);
 		DrawEnemyField(arrEnemy, Size, Enemy_LEFT);
 		DrawMenu(Menu_Y, 0);
 		if (turn_player)
 		{
+			if (!IsAliveEnemy())
+			{
+				break;
+			}
 			MovePlayer(arrEnemy);
 			turn_player = false;
 			if (IsDamage(arrEnemy, User.row, User.col))
@@ -189,11 +196,15 @@ int main()
 
 		else
 		{
+			if (!IsAlivePlayer())
+			{
+				break;
+			}
 			turn_player = true;
 			MoveEnemy(arrPlayer);
 
-			PrintEnemyTurn();
-			Sleep(6500);
+			/*PrintEnemyTurn();
+			Sleep(6500);*/
 
 			if (IsDamage(arrPlayer, Enemy.row, Enemy.col))
 			{
@@ -388,15 +399,6 @@ void DrawMenu(short y, short x)
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 //			Set ships on field
-
-bool IsValidNum(int** field, int col, int row)
-{
-	if (field[col][row] == SHIP || field[col][row] == FOG)
-	{
-		return true;
-	}
-	return false;
-}
 
 void InitField(int** field)
 {
@@ -1208,26 +1210,55 @@ void Init_vec_enemy_turns()
 	random_shuffle(vec_enemy_turns.begin(), vec_enemy_turns.end());
 }
 
-void RandNum(int** field, int size)
+bool IsValidCell(int** field, int row, int col)
+{
+	/*if (field[row][col] == SHIP || field[row][col] == FOG)
+	{
+		return true;
+	}
+	return false;*/
+	return field[row][col] != DESTROYED && field[row][col] != FAILURE;
+}
+
+void RandNum(int** field)
 {
 	do
 	{
-		Enemy.row = rand() % size;
-		Enemy.col = rand() % size;
-	} while (!IsValidNum(field, Enemy.col, Enemy.row));
+		Enemy.row = rand() % Size;
+		Enemy.col = rand() % Size;
+	} while (!IsValidCell(field, Enemy.row, Enemy.col));
+}
+
+void EnemyTurn(int** field)
+{
+	int row = vec_enemy_turns[0].row;
+	int col = vec_enemy_turns[0].col;
+	if (IsValidCell(field, row, col))
+	{
+		Enemy.row = row;
+		Enemy.col = col;
+	}
+	else
+	{
+		SetConsoleCursorPosition(hStdOut, { 0, 26 });
+		printf("\ty=%d x=%d", Enemy.row, Enemy.col);
+		Sleep(5700);
+	}
 }
 
 void MoveEnemy(int** field) //  Ход ИИ с генерацией рандомных координат
 {
-	RandNum(field, Size);
-	// get Ffirst elem and erase it
-
+	RandNum(field);
+	//EnemyTurn(field);
 	int cell = field[Enemy.row][Enemy.col];
-	// Change state of current cell
+	// Change state of current cell if it possible
+	if (!IsValidCell(field, Enemy.row, Enemy.col))
+	{
+		return;
+	}
 	if (cell == SHIP)
 	{
 		field[Enemy.row][Enemy.col] = DESTROYED;
-
 	}
 	else
 	{
