@@ -73,14 +73,9 @@ struct Vector
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 vector<Point> vec_enemy_turns;
-void PurgenAwards();
-void AddAward(int row, int col);
-int AmmountOfAwards();
-void SecondChangeOrderEnemyTurns(int row, int col);
-	void AddLeftAndChangeNTurns(int row, int col, int n);
-	void AddRightAndChangeNTurns(int row, int col, int n);
-///////////////////////////////
-vector<Point> vec_enemy_awards;
+int changes_step = 0;
+void PrintChanges();
+
 void Init_vec_enemy_turns();
 void MoveEnemy(int** field);
 	void RandNum(int** field);
@@ -223,18 +218,8 @@ int main()
 			{
 				PlayerLife--;
 				turn_player = false;
-
-				AddAward(Enemy.row, Enemy.col);
-				if (AmmountOfAwards() == 1)
-				{
-					ChangeOrderEnemyTurns(Enemy.row, Enemy.col);
-				}
-				else
-				{
-					SecondChangeOrderEnemyTurns(Enemy.row, Enemy.col);
-				}
-				
-				
+				changes_step = 0;
+				ChangeOrderEnemyTurns(Enemy.row, Enemy.col);
 
 				GetBeginOfShip(arrPlayer, Enemy.row, Enemy.col, &VectorPlayer);
 				GetSizeOfShip(arrPlayer, &VectorPlayer);
@@ -249,11 +234,14 @@ int main()
 					CleanAreaOutOfDrawnedShip(arrPlayer, &VectorPlayer);
 					EraseEnemyTurns(arrPlayer);
 					//Sleep(6500);
-
-					PurgenAwards();
 				}
 			}
+			else if (changes_step > 0)
+			{
+				changes_step--;
+			}
 			PrintEnemyVectorSize();
+			PrintChanges();
 			Sleep(2000);
 		}
 		system("cls");
@@ -1232,7 +1220,13 @@ void PrintEnemyTurn()
 void PrintEnemyVectorSize()
 {
 	SetConsoleCursorPosition(hStdOut, { 0, 27 });
-	printf("size=%d", vec_enemy_turns.size());
+	printf("turns=%d", vec_enemy_turns.size());
+}
+
+void PrintChanges()
+{
+	SetConsoleCursorPosition(hStdOut, { 0, 28 });
+	printf("steps=%d", changes_step);
 }
 
 void Init_vec_enemy_turns()
@@ -1272,11 +1266,21 @@ void EnemyTurn(int** field)
 		Enemy.row = row;
 		Enemy.col = col;
 	}
-	else
+}
+
+void MoveEnemy(int** field) //  Ход ИИ с генерацией рандомных координат
+{
+	//RandNum(field);
+	EnemyTurn(field);
+	int cell = field[Enemy.row][Enemy.col];
+	// Change state of current cell if it possible
+	if (cell == SHIP)
 	{
-		/*SetConsoleCursorPosition(hStdOut, { 0, 26 });
-		printf("\ty=%d x=%d", Enemy.row, Enemy.col);
-		Sleep(500);*/
+		field[Enemy.row][Enemy.col] = DESTROYED;
+	}
+	else if (cell != DESTROYED)
+	{
+		field[Enemy.row][Enemy.col] = FAILURE;
 	}
 }
 
@@ -1314,6 +1318,10 @@ void EraseEnemyTurns(int** field)
 void ChangeOrderEnemyTurns(int row, int col)
 {
 	// First of try to move on horisontal
+	if (changes_step > 0)
+	{
+		return;
+	}
 	int cnt = 0;
 	if (ChangeEnemyTurn(row, col - 1, cnt))
 	{
@@ -1328,8 +1336,11 @@ void ChangeOrderEnemyTurns(int row, int col)
 	{
 		cnt++;
 	}
-	ChangeEnemyTurn(row + 1, col, cnt);
-	
+	if (ChangeEnemyTurn(row + 1, col, cnt))
+	{
+		cnt++;
+	}
+	changes_step = cnt;
 }
 
 bool ChangeEnemyTurn(int row, int col, int order)
@@ -1350,70 +1361,5 @@ bool ChangeEnemyTurn(int row, int col, int order)
 	}
 	return false;
 }
-
-void MoveEnemy(int** field) //  Ход ИИ с генерацией рандомных координат
-{
-	//RandNum(field);
-	EnemyTurn(field);
-	int cell = field[Enemy.row][Enemy.col];
-	// Change state of current cell if it possible
-	if (cell == SHIP)
-	{
-		field[Enemy.row][Enemy.col] = DESTROYED;
-	}
-	else if (cell != DESTROYED)
-	{
-		field[Enemy.row][Enemy.col] = FAILURE;
-	}
-}
-
 ////////////
-void PurgenAwards()
-{
-	vec_enemy_awards.clear();
-	vec_enemy_awards.shrink_to_fit();
-}
 
-void AddAward(int row, int col)
-{
-	vec_enemy_awards.push_back({ row, col });
-}
-
-int AmmountOfAwards()
-{
-	return vec_enemy_awards.size();
-}
-
-void SecondChangeOrderEnemyTurns(int row, int col)
-{
-	int dy = vec_enemy_awards[0].col - vec_enemy_awards[1].col;
-	if (dy == 0) //finish it by horizont
-	{
-		// try to add 3 steps to left
-		// find lefter
-		// sort lefter to righter
-		sort(vec_enemy_awards.begin(), vec_enemy_awards.end(),
-			[](Point const& a, Point const& b)
-			{
-				return a.col > b.col;
-			}
-		);
-		AddLeftAndChangeNTurns(row, col, 2);
-		// try to add 3 steps to right
-		// find righter
-		AddRightAndChangeNTurns(row, col, 2);
-		return;
-	}
-	// finish it by vertical
-
-	// try to add 3 steps to up
-	// try to add 3 steps to down
-}
-
-void AddLeftAndChangeNTurns(int row, int col, int n)
-{
-}
-
-void AddRightAndChangeNTurns(int row, int col, int n)
-{
-}
