@@ -72,6 +72,12 @@ struct Vector
 } VectorEnemy, VectorPlayer;
 
 ////////////////////////////////////////////////////////////////////////////////////////////
+vector<Point> vec_enemy_turns;
+void Init_vec_enemy_turns();
+int RandNum(int** field, int size);	
+
+void PrintEnemyTurn();
+////////////////////////////////////////////////////////////////////////////////////////////
 void DrawPlayerField(int** arr, int size = 10, short x = 0, short y = 0);
 void DrawEnemyField(int** arr, int size = 10, short x = 40, short y = 0);  ///в функции поменять Fog на Ship для отображения кораблей
 void MoveEnemy(int** field);
@@ -95,9 +101,6 @@ bool CheckUp(int** field, short x, short y, int size);
 bool CheckRight(int** field, short x, short y, int size);
 bool CheckDown(int** field, short x, short y, int size);
 ////////////////////////////////////////////////////////////////////////////////////////////
-int RandNum(int** field, int size);
-
-////////////////////////////////////////////////////////////////////////////////////////////
 bool IsDamage(int** field, short x, short y);
 bool IsAlivePlayer();
 bool IsAliveEnemy();
@@ -118,7 +121,6 @@ void PrintDrowned();
 bool IsShip(int** field, short x, short y);
 ////////////////////////////////////////////////////////////////////////////////////////////
 
-////////////////////////////////////////////////////////////////////////////////////////////
 
 int main()
 {
@@ -128,14 +130,12 @@ int main()
 	srand(time(NULL));
 
 	int** arrPlayer = new int* [Size];
-
 	for (int i = 0; i < Size; i++)
 	{
 		arrPlayer[i] = new int[Size];
 	}
 
 	int** arrEnemy = new int* [Size];
-
 	for (int i = 0; i < Size; i++)
 	{
 		arrEnemy[i] = new int[Size];
@@ -191,7 +191,10 @@ int main()
 		{
 			turn_player = true;
 			MoveEnemy(arrPlayer);
-			
+
+			PrintEnemyTurn();
+			Sleep(6500);
+
 			if (IsDamage(arrPlayer, Enemy.row, Enemy.col))
 			{
 				PlayerLife--;
@@ -199,20 +202,15 @@ int main()
 				GetBeginOfShip(arrPlayer, Enemy.row, Enemy.col, &VectorPlayer);
 				GetSizeOfShip(arrPlayer, &VectorPlayer);
 				
-			/*	Sleep(6500);*/
-			/*	GetBeginOfShip(arrPlayer, Enemy.row, Enemy.col, &VectorPlayer);
-				GetSizeOfShip(arrPlayer, &VectorPlayer);*/
-				//#PrintVector(&VectorEnemy);
+				/*PrintVector(&VectorPlayer);
+				Sleep(6500);*/
 
-				//Remember lucky step
-				/*EnemyLuck.row = Enemy.row;
-				EnemyLuck.col = Enemy.col;*/
 				//#check is drawned
 				if (IsDrowned(arrPlayer, &VectorPlayer))
 				{
-					PrintDrowned();
+					//PrintDrowned();
 					CleanAreaOutOfDrawnedShip(arrPlayer, &VectorPlayer);
-					Sleep(6500);
+					//Sleep(6500);
 				}
 			}
 		}
@@ -1190,17 +1188,23 @@ void MovePlayer(int** field) // Ход Игрока с проверкой введенных значений
 		field[User.row][User.col] = FAILURE;
 	}
 }
-
-void InitSteps(vector<Point>* steps)
+/////////////////////////////////////////////////
+/////////////////////////////////////////////////
+void PrintEnemyTurn()
 {
-	for (short i = 0; i < Size; i++)
+	SetConsoleCursorPosition(hStdOut, { 0, 26 });
+	printf("y=%d x=%d", Enemy.row, Enemy.col);
+}
+
+void Init_vec_enemy_turns()
+{
+	for (int i = 0; i < Size; i++)
 	{
-		for (short j = 0; j < Size; j++)
+		for (int j = 0; j < Size; j++)
 		{
-			steps->push_back({ i, j });
+			vec_enemy_turns.push_back({ i, j });
 		}
 	}
-	random_shuffle(steps->begin(), steps->end());
 }
 
 int RandNum(int** field, int size)
@@ -1218,7 +1222,6 @@ void MoveEnemy(int** field) //  Ход ИИ с генерацией рандомных координат
 	RandNum(field, Size);
 	// get Ffirst elem and erase it
 
-
 	int cell = field[Enemy.row][Enemy.col];
 	// Change state of current cell
 	if (cell == SHIP)
@@ -1231,4 +1234,3 @@ void MoveEnemy(int** field) //  Ход ИИ с генерацией рандомных координат
 		field[Enemy.row][Enemy.col] = FAILURE;
 	}
 }
-
