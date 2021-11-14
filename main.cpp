@@ -80,11 +80,8 @@ struct Vector
 
 struct EnemyBrain
 {
-	vector<int>* dirs_t;
-	bool sniper_t;
-	vector<Point>* steps_t;
-	Point* lucky_step_t;
-	Point* current_step_t;
+	
+
 } enemy_brain;
 
 
@@ -153,11 +150,9 @@ bool IsShip(int** field, short x, short y);
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 void InitEnemyBrain(EnemyBrain*);
-	void InitSteps(vector<Point>* steps);
-	void InitDirs(vector<int>* dirs);
+	
 void DestroyEnemyBrain(EnemyBrain*);
-void ShootNearLucky();
-void CutImpossibleDir();
+
 ////////////////////////////////////////////////////////////////////////////////////////////
 
 int main()
@@ -232,16 +227,14 @@ int main()
 		{
 			turn_player = true;
 			MoveEnemy(arrPlayer);
-			int row = enemy_brain.current_step_t->row;
-			int col = enemy_brain.current_step_t->col;
-			if (IsDamage(arrPlayer, row, col))
+			
+			if (IsDamage(arrPlayer, Enemy.row, Enemy.col))
 			{
 				PlayerLife--;
 				turn_player = false;
-				GetBeginOfShip(arrPlayer, row, col, &VectorPlayer);
+				GetBeginOfShip(arrPlayer, Enemy.row, Enemy.col, &VectorPlayer);
 				GetSizeOfShip(arrPlayer, &VectorPlayer);
 				
-				enemy_brain.sniper_t = true;
 			/*	Sleep(6500);*/
 			/*	GetBeginOfShip(arrPlayer, Enemy.row, Enemy.col, &VectorPlayer);
 				GetSizeOfShip(arrPlayer, &VectorPlayer);*/
@@ -391,50 +384,19 @@ int RandNum(int** field, int size)
 
 void MoveEnemy(int** field) //  Ход ИИ с генерацией рандомных координат
 {
-
-	int x =(*enemy_brain.steps_t)[0].col;
-	int y =(*enemy_brain.steps_t)[0].row;
-
-	if (enemy_brain.sniper_t == false)
-	{
-		enemy_brain.current_step_t->col = x;
-		enemy_brain.current_step_t->row = y;
-	}
-	else
-	{
-
-	}
-	
-	enemy_brain.steps_t->erase(enemy_brain.steps_t->begin());
-
-
 	//random step
-	/*RandNum(field, Size);*/
+	RandNum(field, Size);
 	// get Ffirst elem and erase it
 
-
-	//int cell = field[Enemy.row][Enemy.col];
-	//// Change state of current cell
-	//if (cell == SHIP)
-	//{
-	//	field[Enemy.row][Enemy.col] = DESTROYED;
-
-	//}
-	//else
-	//{
-	//	field[Enemy.row][Enemy.col] = FAILURE;
-	//}
-	int cell = field[y][x];
+	int cell = field[Enemy.row][Enemy.col];
 	// Change state of current cell
 	if (cell == SHIP)
 	{
-		field[y][x] = DESTROYED;
-		enemy_brain.lucky_step_t->col = x;
-		enemy_brain.lucky_step_t->row = y;
+		field[Enemy.row][Enemy.col] = DESTROYED;
 	}
 	else
 	{
-		field[y][x] = FAILURE;
+		field[Enemy.row][Enemy.col] = FAILURE;
 	}
 }
 
@@ -1304,93 +1266,12 @@ void InitSteps(vector<Point>* steps)
 
 void InitEnemyBrain(EnemyBrain* enemy)
 {
-	enemy->lucky_step_t = new Point{ -1, -1 };
-	enemy->current_step_t = new Point{ -1, -1 };
-	enemy->steps_t = new vector<Point>;
-	enemy->dirs_t = new vector<int>;
-	enemy->sniper_t = false;
-	InitSteps(enemy->steps_t);
-	InitDirs(enemy->dirs_t);
+	
 }
 
-void InitDirs(vector<int>* dirs)
-{
-	dirs->push_back(LEFT);
-	dirs->push_back(UP);
-	dirs->push_back(RIGHT);
-	dirs->push_back(DOWN);
-	random_shuffle(dirs->begin(), dirs->end());
-}
 void DestroyEnemyBrain(EnemyBrain* enemy)
 {
-	delete enemy->steps_t;
-	delete enemy->dirs_t;
-	delete enemy->lucky_step_t;
+	
 }
 
-void ShootNearLucky()
-{
-	CutImpossibleDir();
-	int cur_dir = (*enemy_brain.dirs_t)[0];
-	int x = enemy_brain.lucky_step_t->col;
-	int y = enemy_brain.lucky_step_t->row;
-	/*switch (cur_dir)
-	{
-	case LEFT:
-		enemy_brain.current_step_t->col = x - 1;
-		enemy_brain.current_step_t->row = y;
-		break;
-	case UP:
-		enemy_brain.current_step_t->col = x;
-		enemy_brain.current_step_t->row = y - 1;
-		break;
-	case RIGHT:
-		enemy_brain.current_step_t->col = x + 1;
-		enemy_brain.current_step_t->row = y;
-		break;
-	case DOWN:
-		enemy_brain.current_step_t->col = x;
-		enemy_brain.current_step_t->row = y + 1;
-		break;
-	default:
-		break;
-	}
-	enemy_brain.dirs_t->erase(enemy_brain.dirs_t->begin());*/
-}
 
-void CutImpossibleDir()
-{
-	int cur_dir = (*enemy_brain.dirs_t)[0];
-	int x = enemy_brain.lucky_step_t->col;
-	int y = enemy_brain.lucky_step_t->row;
-	//cut imposible
-	switch (cur_dir)
-	{
-	case LEFT:
-		if (x == 0)
-		{
-			enemy_brain.dirs_t->erase(enemy_brain.dirs_t->begin());
-		}
-		break;
-	case UP:
-		if (y == 0)
-		{
-			enemy_brain.dirs_t->erase(enemy_brain.dirs_t->begin());
-		}
-		break;
-	case RIGHT:
-		if (x == Size - 1)
-		{
-			enemy_brain.dirs_t->erase(enemy_brain.dirs_t->begin());
-		}
-		break;
-	case DOWN:
-		if (y == Size - 1)
-		{
-			enemy_brain.dirs_t->erase(enemy_brain.dirs_t->begin());
-		}
-		break;
-	default:
-		break;
-	}
-}
