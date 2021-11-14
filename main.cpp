@@ -78,11 +78,7 @@ struct Vector
 	size_t length;
 } VectorEnemy, VectorPlayer;
 
-struct EnemyBrain
-{
-	
 
-} enemy_brain;
 
 
 //vector<Point> V_Steps_Enemy;
@@ -149,9 +145,7 @@ bool IsShip(int** field, short x, short y);
 ////////////////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////////////////
-void InitEnemyBrain(EnemyBrain*);
-	
-void DestroyEnemyBrain(EnemyBrain*);
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -186,8 +180,7 @@ int main()
 	}
 	InitField(arrEnemy);
 	InitField(arrPlayer);
-	//InitSteps(&V_Steps_Enemy);
-	InitEnemyBrain(&enemy_brain);
+
 	//begin main loop
 
 	bool turn_player = true;
@@ -284,8 +277,6 @@ int main()
 
 	delete[] arrEnemy;
 
-	DestroyEnemyBrain(&enemy_brain);
-
 	return 0;
 }
 
@@ -372,6 +363,7 @@ void DrawEnemyField(int** field, int size, short x, short y) //отрисовка поля ИИ
 		}
 	}
 }
+
 int RandNum(int** field, int size)
 {
 	do
@@ -1264,14 +1256,5 @@ void InitSteps(vector<Point>* steps)
 	random_shuffle(steps->begin(), steps->end());
 }
 
-void InitEnemyBrain(EnemyBrain* enemy)
-{
-	
-}
-
-void DestroyEnemyBrain(EnemyBrain* enemy)
-{
-	
-}
 
 
