@@ -73,11 +73,15 @@ struct Vector
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 vector<Point> vec_enemy_turns;
-void MoveEnemy(int** field);
 void Init_vec_enemy_turns();
-void RandNum(int** field);
-void EnemyTurn(int** field);
+void MoveEnemy(int** field);
+	void RandNum(int** field);
+	void EnemyTurn(int** field);
 void EraseEnemyTurns(int** field);
+ 
+void ChangeOrderEnemyTurns(int row, int col);
+	bool ChangeEnemyTurn(int row, int col, int order);
+
 void PrintEnemyTurn();
 void PrintEnemyVectorSize();
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -211,6 +215,9 @@ int main()
 			{
 				PlayerLife--;
 				turn_player = false;
+
+				ChangeOrderEnemyTurns(Enemy.row, Enemy.col);
+
 				GetBeginOfShip(arrPlayer, Enemy.row, Enemy.col, &VectorPlayer);
 				GetSizeOfShip(arrPlayer, &VectorPlayer);
 				
@@ -227,7 +234,7 @@ int main()
 				}
 			}
 			PrintEnemyVectorSize();
-			Sleep(3000);
+			Sleep(2000);
 		}
 		system("cls");
 	}
@@ -1284,6 +1291,46 @@ void EraseEnemyTurns(int** field)
 	}
 	
 	
+}
+
+void ChangeOrderEnemyTurns(int row, int col)
+{
+	// First of try to move on horisontal
+	int cnt = 0;
+	if (ChangeEnemyTurn(row, col - 1, cnt))
+	{
+		cnt++;
+	}
+	if (ChangeEnemyTurn(row, col + 1, cnt))
+	{
+		cnt++;
+	}
+	//vertical
+	if (ChangeEnemyTurn(row - 1, col, cnt))
+	{
+		cnt++;
+	}
+	ChangeEnemyTurn(row + 1, col, cnt);
+	
+}
+
+bool ChangeEnemyTurn(int row, int col, int order)
+{
+	Point tmp{ row, col };
+	auto it = find_if(vec_enemy_turns.begin(), vec_enemy_turns.end(),
+		[&tmp](Point const& p)
+		{
+			return p.row == tmp.row && p.col == tmp.col;
+		}
+	);
+	if (it != vec_enemy_turns.end())
+	{
+		//vec_enemy_turns.erase(it);
+		// swap with first element
+		iter_swap(it, vec_enemy_turns.begin() + order);
+		return true;
+	}
+	return false;
 }
 
 void MoveEnemy(int** field) //  Ход ИИ с генерацией рандомных координат
