@@ -1,4 +1,3 @@
-//goto 80))
 #include <Windows.h>
 #include <iostream>
 #include <stdio.h>
@@ -63,13 +62,7 @@ struct Point
 {
 	int row;
 	int col;
-} User;
-
-struct PointEnemy
-{
-	int row;
-	int col;
-} Enemy;
+} User, Enemy;
 
 struct Vector
 {
@@ -78,46 +71,30 @@ struct Vector
 	size_t length;
 } VectorEnemy, VectorPlayer;
 
-
-
-
-//vector<Point> V_Steps_Enemy;
-//Point EnemyLuck{ -1, -1 };
-
+////////////////////////////////////////////////////////////////////////////////////////////
 void DrawPlayerField(int** arr, int size = 10, short x = 0, short y = 0);
-
 void DrawEnemyField(int** arr, int size = 10, short x = 40, short y = 0);  ///в функции поменять Fog на Ship для отображения кораблей
-
 void MoveEnemy(int** field);
-
 void MovePlayer(int** field);
-
 void ToUpperChar(char* ch);
-
 bool ReadUser(char Uchar, int Uint);
-
 bool IsValidNum(int num);
-
 bool IsValidChar(char ch);
-
 void BatleParser(const char* src, char* ch, int* num);
-
 void DrawMenu(short y, short x = 0);
-
 bool IsValidNum(int** field, int col, int row);
-
 ////////////////////////////////////////////////////////////////////////////////////////////
 void InitField(int** field);
 bool IsAllowedToSet(int** field, short x, short y);
 bool OutOfBounds(int** field, short x, short y);
 int GetAllowedDirection(int** field, short x, short y, int size);
 void SetShip(int** field, short x, short y, int size, int dir);
-////////
+////////////////////////////////////////////////////////////////////////////////////////////
 bool CheckLeft(int** field, short x, short y, int size);
 bool CheckUp(int** field, short x, short y, int size);
 bool CheckRight(int** field, short x, short y, int size);
 bool CheckDown(int** field, short x, short y, int size);
-////////
+////////////////////////////////////////////////////////////////////////////////////////////
 int RandNum(int** field, int size);
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -126,7 +103,6 @@ bool IsAlivePlayer();
 bool IsAliveEnemy();
 ////////////////////////////////////////////////////////////////////////////////////////////
 void CleanAreaOutOfDrawnedShip(int** field, Vector const* vec);
-
 bool IsDrowned(int** field, Vector const* vec);
 void GetBeginOfShip(int** field, short y, short x, Vector* vec);
 bool IsMonoShip(int** field, short y, short x);
@@ -136,16 +112,11 @@ int GetShiftX(int** field, short y, short x);
 int GetShiftY(int** field, short y, short x);
 bool IsCellShipOrDestroy(int** field, short y, short x);
 bool CanItBeLeft(int** field, short y, short x);
-
 void GetSizeOfShip(int** field, Vector* vec);
-
 void PrintVector(Vector const* v);
 void PrintDrowned();
 bool IsShip(int** field, short x, short y);
 ////////////////////////////////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////////////////////////////////
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -280,6 +251,8 @@ int main()
 	return 0;
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//					Draw field
 void DrawPlayerField(int** field, int size, short x, short y) // отрисовка поля игрока
 {
 	int shift_X = 5;
@@ -364,56 +337,8 @@ void DrawEnemyField(int** field, int size, short x, short y) //отрисовка поля ИИ
 	}
 }
 
-int RandNum(int** field, int size)
-{
-	do
-	{
-		Enemy.row = rand() % size;
-		Enemy.col = rand() % size;
-	} while (!IsValidNum(field, Enemy.col, Enemy.row));
-	return 0;
-}
-
-void MoveEnemy(int** field) //  Ход ИИ с генерацией рандомных координат
-{
-	//random step
-	RandNum(field, Size);
-	// get Ffirst elem and erase it
-
-	int cell = field[Enemy.row][Enemy.col];
-	// Change state of current cell
-	if (cell == SHIP)
-	{
-		field[Enemy.row][Enemy.col] = DESTROYED;
-	}
-	else
-	{
-		field[Enemy.row][Enemy.col] = FAILURE;
-	}
-}
-
-void MovePlayer(int** field) // Ход Игрока с проверкой введенных значений
-{
-	// Read Player
-	char UserCh;
-	int UserInt;
-	char tmp[4];
-	scanf_s("%s", tmp, _countof(tmp));
-	BatleParser(tmp, &UserCh, &UserInt);
-	ReadUser(UserCh, UserInt);
-	int cell = field[User.row][User.col];
-
-	if (cell == SHIP || cell == DESTROYED)
-	{
-		field[User.row][User.col] = DESTROYED;
-	}
-	else
-	{
-		field[User.row][User.col] = FAILURE;
-	}
-
-}
-
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//					Read player turn
 void ToUpperChar(char* ch)
 {
 	const char shift = 'A' - 'a';
@@ -462,6 +387,9 @@ void DrawMenu(short y, short x)
 	SetConsoleCursorPosition(hStdOut, { x, y });
 	cout << "Введите координаты: ";
 }
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//			Set ships on field
 
 bool IsValidNum(int** field, int col, int row)
 {
@@ -891,10 +819,8 @@ bool CheckDown(int** field, short x, short y, int size)
 	return true;
 }
 
-
-
-
-
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//						Check Who is alive
 bool IsDamage(int** field, short y, short x)
 {
 	return field[y][x] == DESTROYED;
@@ -910,6 +836,8 @@ bool IsAliveEnemy()
 	return EnemyLife != 0;
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//						Solve Drawing ship and erase draned steps
 void CleanAreaOutOfDrawnedShip(int** field, Vector const* vec)
 {
 	int lefter = vec->point.col - 1;
@@ -1240,9 +1168,28 @@ bool IsShip(int** field, short y, short x)
 	return field[y][x] == SHIP || field[y][x] == DESTROYED;
 }
 
-
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//			Move Player and Enemy Player
+void MovePlayer(int** field) // Ход Игрока с проверкой введенных значений
+{
+	// Read Player
+	char UserCh;
+	int UserInt;
+	char tmp[4];
+	scanf_s("%s", tmp, _countof(tmp));
+	BatleParser(tmp, &UserCh, &UserInt);
+	ReadUser(UserCh, UserInt);
+	int cell = field[User.row][User.col];
 
+	if (cell == SHIP || cell == DESTROYED)
+	{
+		field[User.row][User.col] = DESTROYED;
+	}
+	else
+	{
+		field[User.row][User.col] = FAILURE;
+	}
+}
 
 void InitSteps(vector<Point>* steps)
 {
@@ -1256,5 +1203,32 @@ void InitSteps(vector<Point>* steps)
 	random_shuffle(steps->begin(), steps->end());
 }
 
+int RandNum(int** field, int size)
+{
+	do
+	{
+		Enemy.row = rand() % size;
+		Enemy.col = rand() % size;
+	} while (!IsValidNum(field, Enemy.col, Enemy.row));
+	return 0;
+}
 
+void MoveEnemy(int** field) //  Ход ИИ с генерацией рандомных координат
+{
+	RandNum(field, Size);
+	// get Ffirst elem and erase it
+
+
+	int cell = field[Enemy.row][Enemy.col];
+	// Change state of current cell
+	if (cell == SHIP)
+	{
+		field[Enemy.row][Enemy.col] = DESTROYED;
+
+	}
+	else
+	{
+		field[Enemy.row][Enemy.col] = FAILURE;
+	}
+}
 
