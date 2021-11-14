@@ -74,7 +74,7 @@ struct Vector
 ////////////////////////////////////////////////////////////////////////////////////////////
 vector<Point> vec_enemy_turns;
 void Init_vec_enemy_turns();
-int RandNum(int** field, int size);	
+void RandNum(int** field, int size);	
 
 void PrintEnemyTurn();
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -1205,16 +1205,16 @@ void Init_vec_enemy_turns()
 			vec_enemy_turns.push_back({ i, j });
 		}
 	}
+	random_shuffle(vec_enemy_turns.begin(), vec_enemy_turns.end());
 }
 
-int RandNum(int** field, int size)
+void RandNum(int** field, int size)
 {
 	do
 	{
 		Enemy.row = rand() % size;
 		Enemy.col = rand() % size;
 	} while (!IsValidNum(field, Enemy.col, Enemy.row));
-	return 0;
 }
 
 void MoveEnemy(int** field) //  Ход ИИ с генерацией рандомных координат
