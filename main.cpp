@@ -1343,7 +1343,8 @@ void AddNeigboursToSmart(int** field, int row, int col)
 
 bool IsUnknown(int** field, int row, int col)
 {
-	return field[row][col] != DESTROYED && field[row][col] != FAILURE;
+	return field[row][col] != DESTROYED && field[row][col] != FAILURE && field[row][col] != EMPTY;
+	//return field[row][col] != DESTROYED && field[row][col] != FAILURE;
 }
 
 void SmartTurnEnemy(int** field)
