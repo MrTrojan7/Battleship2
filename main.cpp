@@ -72,22 +72,18 @@ struct Vector
 } VectorEnemy, VectorPlayer;
 
 ////////////////////////////////////////////////////////////////////////////////////////////
-vector<Point> vec_enemy_turns;
-int changes_step = 0;
+vector<Point> vec_random_enemy_turns;
 
-void PrintChanges();
-
-void Init_vec_enemy_turns();
+void Init_vec_random_enemy_turns();
 void MoveEnemy(int** field);
 	void RandNum(int** field);
-	void EnemyTurn(int** field);
-void EraseEnemyTurns(int** field);
+	void RandomTurnEnemy(int** field);
+void EraseRandomTurnEnemys(int** field);
  
-void ChangeOrderEnemyTurns(int row, int col);
-	bool ChangeEnemyTurn(int row, int col, int order);
+//void ChangeOrderRandomTurnEnemys(int row, int col);
+//	bool ChangeRandomTurnEnemy(int row, int col, int order);
 
-void PrintEnemyTurn();
-void PrintEnemyVectorSize();
+void PrintRandomTurnEnemy();
 ////////////////////////////////////////////////////////////////////////////////////////////
 void DrawPlayerField(int** arr, int size = 10, short x = 0, short y = 0);
 void DrawEnemyField(int** arr, int size = 10, short x = 40, short y = 0);  ///в функции поменять Fog на Ship для отображения кораблей
@@ -139,7 +135,7 @@ int main()
 	SetConsoleTitle(TEXT("Морской Бой"));
 	srand(time(NULL));
 
-	Init_vec_enemy_turns();
+	Init_vec_random_enemy_turns();
 
 	int** arrPlayer = new int* [Size];
 	for (int i = 0; i < Size; i++)
@@ -212,15 +208,15 @@ int main()
 			turn_player = true;
 			MoveEnemy(arrPlayer);
 
-			PrintEnemyTurn();
+			PrintRandomTurnEnemy();
 			//Sleep(3000);
 
 			if (IsDamage(arrPlayer, Enemy.row, Enemy.col))
 			{
 				PlayerLife--;
 				turn_player = false;
-				changes_step = 0;
-				ChangeOrderEnemyTurns(Enemy.row, Enemy.col);
+				//changes_step = 0;
+				//ChangeOrderRandomTurnEnemys(Enemy.row, Enemy.col);
 
 				GetBeginOfShip(arrPlayer, Enemy.row, Enemy.col, &VectorPlayer);
 				GetSizeOfShip(arrPlayer, &VectorPlayer);
@@ -233,16 +229,10 @@ int main()
 				{
 					//PrintDrowned();
 					CleanAreaOutOfDrawnedShip(arrPlayer, &VectorPlayer);
-					EraseEnemyTurns(arrPlayer);
+					EraseRandomTurnEnemys(arrPlayer);
 					//Sleep(6500);
 				}
 			}
-			else if (changes_step > 0)
-			{
-				changes_step--;
-			}
-			PrintEnemyVectorSize();
-			PrintChanges();
 			Sleep(2000);
 		}
 		system("cls");
@@ -1212,34 +1202,22 @@ void MovePlayer(int** field) // Ход Игрока с проверкой введенных значений
 }
 /////////////////////////////////////////////////
 /////////////////////////////////////////////////
-void PrintEnemyTurn()
+void PrintRandomTurnEnemy()
 {
 	SetConsoleCursorPosition(hStdOut, { 0, 26 });
 	printf("y=%d x=%d", Enemy.row, Enemy.col);
 }
 
-void PrintEnemyVectorSize()
-{
-	SetConsoleCursorPosition(hStdOut, { 0, 27 });
-	printf("turns=%d", vec_enemy_turns.size());
-}
-
-void PrintChanges()
-{
-	SetConsoleCursorPosition(hStdOut, { 0, 28 });
-	printf("steps=%d", changes_step);
-}
-
-void Init_vec_enemy_turns()
+void Init_vec_random_enemy_turns()
 {
 	for (int i = 0; i < Size; i++)
 	{
 		for (int j = 0; j < Size; j++)
 		{
-			vec_enemy_turns.push_back({ i, j });
+			vec_random_enemy_turns.push_back({ i, j });
 		}
 	}
-	random_shuffle(vec_enemy_turns.begin(), vec_enemy_turns.end());
+	random_shuffle(vec_random_enemy_turns.begin(), vec_random_enemy_turns.end());
 }
 
 bool IsValidCell(int** field, int row, int col)
@@ -1256,12 +1234,12 @@ void RandNum(int** field)
 	} while (!IsValidCell(field, Enemy.row, Enemy.col));
 }
 
-void EnemyTurn(int** field)
+void RandomTurnEnemy(int** field)
 {
-	int row = vec_enemy_turns[0].row;
-	int col = vec_enemy_turns[0].col;
-	if (vec_enemy_turns.size() > 0)
-		vec_enemy_turns.erase(vec_enemy_turns.begin());
+	int row = vec_random_enemy_turns[0].row;
+	int col = vec_random_enemy_turns[0].col;
+	if (vec_random_enemy_turns.size() > 0)
+		vec_random_enemy_turns.erase(vec_random_enemy_turns.begin());
 	if (IsValidCell(field, row, col))
 	{
 		Enemy.row = row;
@@ -1272,7 +1250,9 @@ void EnemyTurn(int** field)
 void MoveEnemy(int** field) //  Ход ИИ с генерацией рандомных координат
 {
 	//RandNum(field);
-	EnemyTurn(field);
+	// if it didn't achived an ame read from Random Turn
+	RandomTurnEnemy(field);
+	// else read from smar
 	int cell = field[Enemy.row][Enemy.col];
 	// Change state of current cell if it possible
 	if (cell == SHIP)
@@ -1285,7 +1265,7 @@ void MoveEnemy(int** field) //  Ход ИИ с генерацией рандомных координат
 	}
 }
 
-void EraseEnemyTurns(int** field)
+void EraseRandomTurnEnemys(int** field)
 {
 	/*SetConsoleCursorPosition(hStdOut, { 0, 25 });
 	printf("{y=%d, x=%d} ", row, col);
@@ -1298,15 +1278,15 @@ void EraseEnemyTurns(int** field)
 			if (field[row][col] == EMPTY)
 			{
 				Point tmp{ row, col };
-				auto it = find_if(vec_enemy_turns.begin(), vec_enemy_turns.end(),
+				auto it = find_if(vec_random_enemy_turns.begin(), vec_random_enemy_turns.end(),
 					[&tmp](Point const& p)
 					{
 						return p.row == tmp.row && p.col == tmp.col;
 					}
 				);
-				if (it != vec_enemy_turns.end())
+				if (it != vec_random_enemy_turns.end())
 				{
-					vec_enemy_turns.erase(it);
+					vec_random_enemy_turns.erase(it);
 					/*SetConsoleCursorPosition(hStdOut, { 0, 25 });
 					printf("{Drowned##y=%d, x=%d} ", row, col);
 					Sleep(3000);*/
@@ -1316,48 +1296,48 @@ void EraseEnemyTurns(int** field)
 	}
 }
 
-void ChangeOrderEnemyTurns(int row, int col)
-{
-	// First of try to move on horisontal
-	if (changes_step > 0)
-	{
-		return;
-	}
-	int cnt = 0;
-	if (ChangeEnemyTurn(row, col - 1, cnt))
-	{
-		cnt++;
-	}
-	if (ChangeEnemyTurn(row, col + 1, cnt))
-	{
-		cnt++;
-	}
-	//vertical
-	if (ChangeEnemyTurn(row - 1, col, cnt))
-	{
-		cnt++;
-	}
-	if (ChangeEnemyTurn(row + 1, col, cnt))
-	{
-		cnt++;
-	}
-	changes_step = cnt;
-}
+//void ChangeOrderRandomTurnEnemys(int row, int col)
+//{
+//	// First of try to move on horisontal
+//	if (changes_step > 0)
+//	{
+//		return;
+//	}
+//	int cnt = 0;
+//	if (ChangeRandomTurnEnemy(row, col - 1, cnt))
+//	{
+//		cnt++;
+//	}
+//	if (ChangeRandomTurnEnemy(row, col + 1, cnt))
+//	{
+//		cnt++;
+//	}
+//	//vertical
+//	if (ChangeRandomTurnEnemy(row - 1, col, cnt))
+//	{
+//		cnt++;
+//	}
+//	if (ChangeRandomTurnEnemy(row + 1, col, cnt))
+//	{
+//		cnt++;
+//	}
+//	changes_step = cnt;
+//}
 
-bool ChangeEnemyTurn(int row, int col, int order)
+bool ChangeRandomTurnEnemy(int row, int col, int order)
 {
 	Point tmp{ row, col };
-	auto it = find_if(vec_enemy_turns.begin(), vec_enemy_turns.end(),
+	auto it = find_if(vec_random_enemy_turns.begin(), vec_random_enemy_turns.end(),
 		[&tmp](Point const& p)
 		{
 			return p.row == tmp.row && p.col == tmp.col;
 		}
 	);
-	if (it != vec_enemy_turns.end())
+	if (it != vec_random_enemy_turns.end())
 	{
-		//vec_enemy_turns.erase(it);
+		//vec_random_enemy_turns.erase(it);
 		// swap with first element
-		iter_swap(it, vec_enemy_turns.begin() + order);
+		iter_swap(it, vec_random_enemy_turns.begin() + order);
 		return true;
 	}
 	return false;
