@@ -6,6 +6,7 @@
 #include <locale>
 #include <algorithm>
 #include <vector>
+#include <stack>
 
 using namespace std;
 
@@ -72,16 +73,22 @@ struct Vector
 } VectorEnemy, VectorPlayer;
 
 ////////////////////////////////////////////////////////////////////////////////////////////
-vector<Point> vec_random_enemy_turns;
-
-void Init_vec_random_enemy_turns();
 void MoveEnemy(int** field);
-	void RandNum(int** field);
-	void RandomTurnEnemy(int** field);
+
+vector<Point> random_enemy_turns;
+void Init_random_enemy_turns();
+void RandNum(int** field);
+void RandomTurnEnemy(int** field);
 void EraseRandomTurnEnemys(int** field);
- 
+////////////////////////////////////////////////////////////////////////////////////////////
+vector<Point> smart_enemy_turns;
+void AddNeigboursToSmart(int** field, int row, int col);
+bool IsUnknown(int** filed, int row, int col);
+void SmartTurnEnemy(int** field);
+void RestartSmart();
+bool IsSmartOn();
 //void ChangeOrderRandomTurnEnemys(int row, int col);
-//	bool ChangeRandomTurnEnemy(int row, int col, int order);
+//bool ChangeRandomTurnEnemy(int row, int col, vector<Point> const& vec);
 
 void PrintRandomTurnEnemy();
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -135,7 +142,7 @@ int main()
 	SetConsoleTitle(TEXT("Морской Бой"));
 	srand(time(NULL));
 
-	Init_vec_random_enemy_turns();
+	Init_random_enemy_turns();
 
 	int** arrPlayer = new int* [Size];
 	for (int i = 0; i < Size; i++)
@@ -182,7 +189,6 @@ int main()
 			{
 				EnemyLife--;
 				turn_player = true;
-
 				//#Debug code
 				GetBeginOfShip(arrEnemy, User.row, User.col, &VectorEnemy);
 				GetSizeOfShip(arrEnemy, &VectorEnemy);
@@ -218,6 +224,9 @@ int main()
 				//changes_step = 0;
 				//ChangeOrderRandomTurnEnemys(Enemy.row, Enemy.col);
 
+				//Smart move
+				AddNeigboursToSmart(arrPlayer, Enemy.row, Enemy.col);
+
 				GetBeginOfShip(arrPlayer, Enemy.row, Enemy.col, &VectorPlayer);
 				GetSizeOfShip(arrPlayer, &VectorPlayer);
 				
@@ -230,6 +239,8 @@ int main()
 					//PrintDrowned();
 					CleanAreaOutOfDrawnedShip(arrPlayer, &VectorPlayer);
 					EraseRandomTurnEnemys(arrPlayer);
+
+					RestartSmart();
 					//Sleep(6500);
 				}
 			}
@@ -1208,16 +1219,16 @@ void PrintRandomTurnEnemy()
 	printf("y=%d x=%d", Enemy.row, Enemy.col);
 }
 
-void Init_vec_random_enemy_turns()
+void Init_random_enemy_turns()
 {
 	for (int i = 0; i < Size; i++)
 	{
 		for (int j = 0; j < Size; j++)
 		{
-			vec_random_enemy_turns.push_back({ i, j });
+			random_enemy_turns.push_back({ i, j });
 		}
 	}
-	random_shuffle(vec_random_enemy_turns.begin(), vec_random_enemy_turns.end());
+	random_shuffle(random_enemy_turns.begin(), random_enemy_turns.end());
 }
 
 bool IsValidCell(int** field, int row, int col)
@@ -1236,10 +1247,10 @@ void RandNum(int** field)
 
 void RandomTurnEnemy(int** field)
 {
-	int row = vec_random_enemy_turns[0].row;
-	int col = vec_random_enemy_turns[0].col;
-	if (vec_random_enemy_turns.size() > 0)
-		vec_random_enemy_turns.erase(vec_random_enemy_turns.begin());
+	int row = random_enemy_turns[0].row;
+	int col = random_enemy_turns[0].col;
+	if (random_enemy_turns.size() > 0)
+		random_enemy_turns.erase(random_enemy_turns.begin());
 	if (IsValidCell(field, row, col))
 	{
 		Enemy.row = row;
@@ -1251,7 +1262,16 @@ void MoveEnemy(int** field) //  Ход ИИ с генерацией рандомных координат
 {
 	//RandNum(field);
 	// if it didn't achived an ame read from Random Turn
-	RandomTurnEnemy(field);
+	if (IsSmartOn())
+	{
+		SmartTurnEnemy(field);
+		//RandomTurnEnemy(field);
+	}
+	else
+	{
+		RandomTurnEnemy(field);
+	}
+	
 	// else read from smar
 	int cell = field[Enemy.row][Enemy.col];
 	// Change state of current cell if it possible
@@ -1278,15 +1298,15 @@ void EraseRandomTurnEnemys(int** field)
 			if (field[row][col] == EMPTY)
 			{
 				Point tmp{ row, col };
-				auto it = find_if(vec_random_enemy_turns.begin(), vec_random_enemy_turns.end(),
+				auto it = find_if(random_enemy_turns.begin(), random_enemy_turns.end(),
 					[&tmp](Point const& p)
 					{
 						return p.row == tmp.row && p.col == tmp.col;
 					}
 				);
-				if (it != vec_random_enemy_turns.end())
+				if (it != random_enemy_turns.end())
 				{
-					vec_random_enemy_turns.erase(it);
+					random_enemy_turns.erase(it);
 					/*SetConsoleCursorPosition(hStdOut, { 0, 25 });
 					printf("{Drowned##y=%d, x=%d} ", row, col);
 					Sleep(3000);*/
@@ -1294,6 +1314,73 @@ void EraseRandomTurnEnemys(int** field)
 			}
 		}
 	}
+}
+
+void AddNeigboursToSmart(int** field, int row, int col)
+{
+	//lefter
+	if (col - 1 >= 0 && IsUnknown(field, row, col - 1))
+	{
+		smart_enemy_turns.push_back({ row, col - 1 });
+	}
+	//righter
+	if (col + 1 < Size && IsUnknown(field, row, col + 1))
+	{
+		smart_enemy_turns.push_back({ row, col + 1 });
+	}
+
+	//upper
+	if (row - 1 >= 0 && IsUnknown(field, row - 1, col))
+	{
+		smart_enemy_turns.push_back({ row - 1, col });
+	}
+	//downer
+	if (row + 1 < Size && IsUnknown(field, row + 1, col))
+	{
+		smart_enemy_turns.push_back({ row + 1, col });
+	}
+}
+
+bool IsUnknown(int** field, int row, int col)
+{
+	return field[row][col] != DESTROYED && field[row][col] != FAILURE;
+}
+
+void SmartTurnEnemy(int** field)
+{
+	int row = smart_enemy_turns[0].row;
+	int col = smart_enemy_turns[0].col;
+	if (smart_enemy_turns.size() > 0)
+		smart_enemy_turns.erase(smart_enemy_turns.begin());
+
+	Point tmp{ row, col };
+	auto it = find_if(random_enemy_turns.begin(), random_enemy_turns.end(),
+		[&tmp](Point const& p)
+		{
+			return p.row == tmp.row && p.col == tmp.col;
+		}
+	);
+	if (it != random_enemy_turns.end())
+	{
+		random_enemy_turns.erase(it);
+	}
+
+	if (IsValidCell(field, row, col))
+	{
+		Enemy.row = row;
+		Enemy.col = col;
+	}
+}
+
+void RestartSmart()
+{
+	smart_enemy_turns.clear();
+	smart_enemy_turns.shrink_to_fit();
+}
+
+bool IsSmartOn()
+{
+	return smart_enemy_turns.size() > 0;
 }
 
 //void ChangeOrderRandomTurnEnemys(int row, int col)
@@ -1324,23 +1411,16 @@ void EraseRandomTurnEnemys(int** field)
 //	changes_step = cnt;
 //}
 
-bool ChangeRandomTurnEnemy(int row, int col, int order)
-{
-	Point tmp{ row, col };
-	auto it = find_if(vec_random_enemy_turns.begin(), vec_random_enemy_turns.end(),
-		[&tmp](Point const& p)
-		{
-			return p.row == tmp.row && p.col == tmp.col;
-		}
-	);
-	if (it != vec_random_enemy_turns.end())
-	{
-		//vec_random_enemy_turns.erase(it);
-		// swap with first element
-		iter_swap(it, vec_random_enemy_turns.begin() + order);
-		return true;
-	}
-	return false;
-}
+//bool IsCellBelonsRandomTurnEnemy(int row, int col, vector<Point> const& vec)
+//{
+//	Point tmp{ row, col };
+//	auto it = find_if(vec.begin(), vec.end(),
+//		[&tmp](Point const& p)
+//		{
+//			return p.row == tmp.row && p.col == tmp.col;
+//		}
+//	);
+//	return it != vec.end();
+//}
 ////////////
 
