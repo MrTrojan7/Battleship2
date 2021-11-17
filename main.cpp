@@ -65,6 +65,11 @@ struct Point
 	int col;
 } User, Enemy;
 
+bool operator==(const Point& a, const Point& b)
+{
+	return a.row == b.row && a.col == b.col;
+}
+
 struct Vector
 {
 	Point point;
@@ -72,6 +77,15 @@ struct Vector
 	size_t length;
 } VectorEnemy, VectorPlayer;
 
+
+////////////////////////////////////////////////////////////////////////////////////////////
+vector<Point> two_enemy_shoots;
+bool IsVertical();
+void RestartEnemyShoots();
+bool IsNecessaryToAddMore();
+void AddShoot(Point const& shoot);
+void EraseStupidTurns();
+void AddMore();
 ////////////////////////////////////////////////////////////////////////////////////////////
 void MoveEnemy(int** field);
 
@@ -227,6 +241,8 @@ int main()
 				//Smart move
 				AddNeigboursToSmart(arrPlayer, Enemy.row, Enemy.col);
 
+				AddMore();
+				
 				GetBeginOfShip(arrPlayer, Enemy.row, Enemy.col, &VectorPlayer);
 				GetSizeOfShip(arrPlayer, &VectorPlayer);
 				
@@ -241,6 +257,7 @@ int main()
 					EraseRandomTurnEnemys(arrPlayer);
 
 					RestartSmart();
+					RestartEnemyShoots();
 					//Sleep(6500);
 				}
 			}
@@ -1258,12 +1275,18 @@ void RandomTurnEnemy(int** field)
 	}
 }
 
+
+
 void MoveEnemy(int** field) //  Ход ИИ с генерацией рандомных координат
 {
 	//RandNum(field);
 	// if it didn't achived an ame read from Random Turn
 	if (IsSmartOn())
 	{
+		if (!IsNecessaryToAddMore())
+		{
+			EraseStupidTurns();
+		}
 		SmartTurnEnemy(field);
 		//RandomTurnEnemy(field);
 	}
@@ -1379,49 +1402,74 @@ void RestartSmart()
 	smart_enemy_turns.shrink_to_fit();
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////// 
+
 bool IsSmartOn()
 {
-	return smart_enemy_turns.size() > 0;
+	return !smart_enemy_turns.empty();
 }
 
-//void ChangeOrderRandomTurnEnemys(int row, int col)
-//{
-//	// First of try to move on horisontal
-//	if (changes_step > 0)
-//	{
-//		return;
-//	}
-//	int cnt = 0;
-//	if (ChangeRandomTurnEnemy(row, col - 1, cnt))
-//	{
-//		cnt++;
-//	}
-//	if (ChangeRandomTurnEnemy(row, col + 1, cnt))
-//	{
-//		cnt++;
-//	}
-//	//vertical
-//	if (ChangeRandomTurnEnemy(row - 1, col, cnt))
-//	{
-//		cnt++;
-//	}
-//	if (ChangeRandomTurnEnemy(row + 1, col, cnt))
-//	{
-//		cnt++;
-//	}
-//	changes_step = cnt;
-//}
+bool IsVertical()
+{
+	return two_enemy_shoots[0].col - two_enemy_shoots[1].col == 0;
+}
 
-//bool IsCellBelonsRandomTurnEnemy(int row, int col, vector<Point> const& vec)
-//{
-//	Point tmp{ row, col };
-//	auto it = find_if(vec.begin(), vec.end(),
-//		[&tmp](Point const& p)
-//		{
-//			return p.row == tmp.row && p.col == tmp.col;
-//		}
-//	);
-//	return it != vec.end();
-//}
-////////////
+void RestartEnemyShoots()
+{
+	two_enemy_shoots.clear();
+	two_enemy_shoots.shrink_to_fit();
+}
 
+bool IsNecessaryToAddMore()
+{
+	return two_enemy_shoots.size() < 2;
+}
+
+void AddShoot(Point const& shoot)
+{
+	two_enemy_shoots.push_back(shoot);
+}
+
+void EraseStupidTurns()
+{
+	if (IsVertical())
+	{
+		smart_enemy_turns.erase(remove_if(smart_enemy_turns.begin(), smart_enemy_turns.end(),
+			[](Point const& e)
+			{
+				return e.col - two_enemy_shoots[0].col != 0;
+			}
+			));
+		sort(smart_enemy_turns.begin(), smart_enemy_turns.end(),
+			[](auto const& a, auto const& b)
+			{
+				return a.row < b.row;
+			}
+		);
+		smart_enemy_turns.resize(unique(smart_enemy_turns.begin(), smart_enemy_turns.end()) - smart_enemy_turns.begin());
+	}
+	else
+	{
+		smart_enemy_turns.erase(remove_if(smart_enemy_turns.begin(), smart_enemy_turns.end(),
+			[](Point const& e)
+			{
+				return e.row - two_enemy_shoots[0].row != 0;
+			}
+		));
+		sort(smart_enemy_turns.begin(), smart_enemy_turns.end(),
+			[](auto const& a, auto const& b)
+			{
+				return a.col < b.col;
+			}
+		);
+		//smart_enemy_turns.resize(unique(smart_enemy_turns.begin(), smart_enemy_turns.end()) - smart_enemy_turns.begin());
+	}
+}
+
+void AddMore()
+{
+	if (IsNecessaryToAddMore())
+	{
+		two_enemy_shoots.push_back({ Enemy.row, Enemy.col });
+	}
+}
