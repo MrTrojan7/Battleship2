@@ -345,7 +345,8 @@ void DrawEnemyField(int** field, int size, short x, short y) //отрисовка поля ИИ
 			switch (cell)
 			{
 			case SHIP:
-				cout << Ship;///////////Поменять на Ship для теста
+				//cout << Ship;///////////Поменять на Ship для теста
+				cout << Fog;///////////Поменять на Ship для теста
 				break;
 
 			case FOG:
