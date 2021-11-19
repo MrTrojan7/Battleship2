@@ -79,13 +79,15 @@ struct Vector
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////
-vector<Point> two_enemy_shoots;
+vector<Point> enemy_shoots;
 bool IsVertical();
+bool IsHorizontal();
+bool HasVerticals();
+bool HasHorizontals();
 void RestartEnemyShoots();
-bool IsNecessaryToAddMore();
-void AddShoot(Point const& shoot);
-void EraseStupidTurns();
-void AddMore();
+void AddVerticalShoots(int** field, int row, int col);
+void AddHorizontalShoots(int** field, int row, int col);
+bool IsSootReachedLine();
 ////////////////////////////////////////////////////////////////////////////////////////////
 void MoveEnemy(int** field);
 
@@ -101,6 +103,7 @@ bool IsUnknown(int** filed, int row, int col);
 void SmartTurnEnemy(int** field);
 void RestartSmart();
 bool IsSmartOn();
+
 //void ChangeOrderRandomTurnEnemys(int row, int col);
 //bool ChangeRandomTurnEnemy(int row, int col, vector<Point> const& vec);
 
@@ -241,7 +244,7 @@ int main()
 				//Smart move
 				AddNeigboursToSmart(arrPlayer, Enemy.row, Enemy.col);
 
-				AddMore();
+				//AddMore();
 				
 				GetBeginOfShip(arrPlayer, Enemy.row, Enemy.col, &VectorPlayer);
 				GetSizeOfShip(arrPlayer, &VectorPlayer);
@@ -1284,10 +1287,10 @@ void MoveEnemy(int** field) //  Ход ИИ с генерацией рандомных координат
 	// if it didn't achived an ame read from Random Turn
 	if (IsSmartOn())
 	{
-		if (!IsNecessaryToAddMore())
+		/*if (!IsNecessaryToAddMore())
 		{
 			EraseStupidTurns();
-		}
+		}*/
 		SmartTurnEnemy(field);
 		//RandomTurnEnemy(field);
 	}
@@ -1342,6 +1345,63 @@ void EraseRandomTurnEnemys(int** field)
 
 void AddNeigboursToSmart(int** field, int row, int col)
 {
+	// add Achived point to shots
+	enemy_shoots.push_back({ row, col });
+	if (IsSootReachedLine()) // if we have min two points - basis
+	{
+		if (IsVertical())
+		{
+			// if first time lets clean
+			if (HasHorizontals())
+			{
+				RestartSmart();
+			}
+			// sort by rows
+			sort(enemy_shoots.begin(), enemy_shoots.end(), [](Point const& a, Point const& b)
+				{
+					return a.row < b.row;
+				}
+			);
+			//try add
+			//upper
+			if (enemy_shoots[0].row - 1 >= 0 && IsUnknown(field, enemy_shoots[0].row - 1, col))
+			{
+				smart_enemy_turns.push_back({ enemy_shoots[0].row - 1, col });
+			}
+			//downer
+			if (enemy_shoots[enemy_shoots.size() - 1].row + 1 < Size && IsUnknown(field, enemy_shoots[enemy_shoots.size() - 1].row + 1, col))
+			{
+				smart_enemy_turns.push_back({ enemy_shoots[enemy_shoots.size() - 1].row + 1, col });
+			}
+		}
+		else
+		{
+			// if first time lets clean
+			if (HasVerticals())
+			{
+				RestartSmart();
+				// sort by cols from 0 to Size - 1
+			}
+			sort(enemy_shoots.begin(), enemy_shoots.end(), [](Point const& a, Point const& b)
+				{
+					return a.col < b.col;
+				}
+			);
+			//try add
+			//lefter
+			if (enemy_shoots[0].col - 1 >= 0 && IsUnknown(field, enemy_shoots[0].row, col - 1))
+			{
+				smart_enemy_turns.push_back({ enemy_shoots[0].row, col - 1 });
+			}
+			//righter
+			if (enemy_shoots[enemy_shoots.size() - 1].row < Size && IsUnknown(field, enemy_shoots[enemy_shoots.size() - 1].row, col + 1))
+			{
+				smart_enemy_turns.push_back({ enemy_shoots[enemy_shoots.size() - 1].row, col + 1 });
+			}
+		}
+		return;
+	}
+
 	//lefter
 	if (col - 1 >= 0 && IsUnknown(field, row, col - 1))
 	{
@@ -1407,70 +1467,59 @@ void RestartSmart()
 
 bool IsSmartOn()
 {
-	return !smart_enemy_turns.empty();
+	return smart_enemy_turns.size() >= 1;
+}
+
+bool IsSootReachedLine()
+{
+	return enemy_shoots.size() >= 2;
 }
 
 bool IsVertical()
 {
-	return two_enemy_shoots[0].col - two_enemy_shoots[1].col == 0;
+	return enemy_shoots[0].col - enemy_shoots[1].col == 0;
+}
+
+bool IsHorizontal()
+{
+	return !IsVertical();
+}
+
+bool HasVerticals()
+{
+	auto it = find_if(smart_enemy_turns.begin(), smart_enemy_turns.end(),
+		[](auto const& e)
+		{
+			return enemy_shoots[0].row - e.row != 0;
+		}
+	);
+	return it != smart_enemy_turns.end();
+}
+
+bool HasHorizontals()
+{
+	auto it = find_if(smart_enemy_turns.begin(), smart_enemy_turns.end(), 
+		[](auto const& e) 
+		{ 
+			return enemy_shoots[0].col - e.col != 0;
+		}
+	);
+	return it != smart_enemy_turns.end();
 }
 
 void RestartEnemyShoots()
 {
-	two_enemy_shoots.clear();
-	two_enemy_shoots.shrink_to_fit();
+	enemy_shoots.clear();
+	enemy_shoots.shrink_to_fit();
 }
 
-bool IsNecessaryToAddMore()
+void AddVerticalShoots(int** field, int row, int col)
 {
-	return two_enemy_shoots.size() < 2;
+
 }
 
-void AddShoot(Point const& shoot)
+void AddHorizontalShoots(int** field, int row, int col)
 {
-	two_enemy_shoots.push_back(shoot);
 }
 
-void EraseStupidTurns()
-{
-	if (IsVertical())
-	{
-		smart_enemy_turns.erase(remove_if(smart_enemy_turns.begin(), smart_enemy_turns.end(),
-			[](Point const& e)
-			{
-				return e.col - two_enemy_shoots[0].col != 0;
-			}
-			));
-		sort(smart_enemy_turns.begin(), smart_enemy_turns.end(),
-			[](auto const& a, auto const& b)
-			{
-				return a.row < b.row;
-			}
-		);
-		smart_enemy_turns.resize(unique(smart_enemy_turns.begin(), smart_enemy_turns.end()) - smart_enemy_turns.begin());
-	}
-	else
-	{
-		smart_enemy_turns.erase(remove_if(smart_enemy_turns.begin(), smart_enemy_turns.end(),
-			[](Point const& e)
-			{
-				return e.row - two_enemy_shoots[0].row != 0;
-			}
-		));
-		sort(smart_enemy_turns.begin(), smart_enemy_turns.end(),
-			[](auto const& a, auto const& b)
-			{
-				return a.col < b.col;
-			}
-		);
-		//smart_enemy_turns.resize(unique(smart_enemy_turns.begin(), smart_enemy_turns.end()) - smart_enemy_turns.begin());
-	}
-}
 
-void AddMore()
-{
-	if (IsNecessaryToAddMore())
-	{
-		two_enemy_shoots.push_back({ Enemy.row, Enemy.col });
-	}
-}
