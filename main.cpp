@@ -365,8 +365,8 @@ void DrawEnemyField(int** field, int size, short x, short y) //отрисовка поля ИИ
 			switch (cell)
 			{
 			case SHIP:
-				//cout << Ship;///////////Поменять на Ship для теста
-				cout << Fog;///////////Поменять на Ship для теста
+				cout << Ship;///////////Поменять на Ship для теста
+				//cout << Fog;///////////Поменять на Ship для теста
 				break;
 
 			case FOG:
@@ -446,7 +446,7 @@ void InitField(int** field)
 {
 	int cnt = 0;
 	int dir = -1;
-	while (cnt < 10)
+	while (cnt != 10)
 	{
 		int x = rand() % Size;
 		int y = rand() % Size;
@@ -485,13 +485,18 @@ void InitField(int** field)
 		//Set1x
 		else
 		{
-			if (IsAllowedToSet(field, x, y))
+			if (IsAllowedToSet(field, x, y) && OutOfBounds(field, x, y))
 			{
 				field[y][x] = SHIP;
 				++cnt;
 			}
 		}
+
 	}
+	//debug print
+	SetConsoleCursorPosition(hStdOut, { 0, 26 });
+	cout << cnt << endl;
+	//Sleep(3000);
 }
 
 bool IsAllowedToSet(int** field, short x, short y)
